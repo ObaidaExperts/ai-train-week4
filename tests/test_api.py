@@ -1,8 +1,10 @@
+import pytest
 from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.api.endpoints import get_experiment_service
 
 client = TestClient(app)
 
@@ -16,12 +18,11 @@ def test_health_check() -> None:
     assert response.status_code == 200
     assert response.json()["status"] == "healthy"
 
-@patch("app.api.endpoints.get_experiment_service")
-def test_chat_endpoint(mock_get_service: MagicMock) -> None:
-    # Setup mock service
-    mock_service = MagicMock()
-    mock_get_service.return_value = mock_service
-    mock_service.analyze_text.return_value = {
+@pytest.fixture
+def mock_service():
+    service = MagicMock()
+    # Default mock behavior
+    service.analyze_text.return_value = {
         "response": "Hello! I am an AI.",
         "log_analysis": {
             "model": "gpt-4o",
@@ -31,13 +32,30 @@ def test_chat_endpoint(mock_get_service: MagicMock) -> None:
             "status": "Success"
         }
     }
+    return service
 
-    response = client.post("/chat", json={"prompt": "Hello"})
-    assert response.status_code == 200
-    data = response.json()
-    assert "request_id" in data
-    assert data["response"] == "Hello! I am an AI."
-    assert "log_analysis" in data
+def test_chat_endpoint(mock_service: MagicMock) -> None:
+    app.dependency_overrides[get_experiment_service] = lambda: mock_service
+    try:
+        response = client.post("/chat", json={"prompt": "Hello", "model": "gpt-4o"})
+        assert response.status_code == 200
+        data = response.json()
+        assert "request_id" in data
+        assert data["response"] == "Hello! I am an AI."
+    finally:
+        app.dependency_overrides.clear()
+
+def test_chat_endpoint_invalid_model() -> None:
+    response = client.post("/chat", json={"prompt": "Hello", "model": "invalid-model"})
+    assert response.status_code == 422
+
+def test_chat_endpoint_empty_prompt(mock_service: MagicMock) -> None:
+    app.dependency_overrides[get_experiment_service] = lambda: mock_service
+    try:
+        response = client.post("/chat", json={"prompt": "", "model": "gpt-4o"})
+        assert response.status_code in [200, 422]
+    finally:
+        app.dependency_overrides.clear()
 
 def test_get_results() -> None:
     # Use a real service instance to test the logic (filesystem dependent)

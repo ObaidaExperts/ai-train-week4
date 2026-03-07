@@ -60,3 +60,36 @@ def test_experiment_service_analyze_text_mocked():
     assert result["response"] == "Mocked response"
     assert result["log_analysis"]["input_tokens"] > 0
     assert mock_repo.log_result.called
+
+def test_experiment_service_api_error():
+    mock_repo = MagicMock()
+    mock_client = MagicMock()
+    service = ExperimentService(repository=mock_repo, client=mock_client)
+    
+    # Simulate an API error
+    mock_client.chat.completions.create.side_effect = Exception("OpenAI API Down")
+    
+    with pytest.raises(Exception) as excinfo:
+        service.analyze_text("Hello", AIModel.GPT_4O)
+    
+    assert "OpenAI API Down" in str(excinfo.value)
+    # The error is raised, ensuring middleware can catch it
+
+def test_experiment_service_repository_failure():
+    mock_repo = MagicMock()
+    mock_client = MagicMock()
+    service = ExperimentService(repository=mock_repo, client=mock_client)
+    
+    # Setup mock response
+    mock_response = MagicMock()
+    mock_response.choices[0].message.content = "Response"
+    mock_response.usage.completion_tokens = 10
+    mock_client.chat.completions.create.return_value = mock_response
+    
+    # Simulate repository failure
+    mock_repo.log_result.side_effect = Exception("Disk Full")
+    
+    with pytest.raises(Exception) as excinfo:
+        service.analyze_text("Hello", AIModel.GPT_4O)
+    
+    assert "Disk Full" in str(excinfo.value)
