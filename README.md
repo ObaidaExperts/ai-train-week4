@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# ai-train-week4
-=======
 # Tokenization and Context Limits Experiment
 
 A professional Python project to experiment with tokenization and context limits using FastAPI, OpenAI, and Gemini.
@@ -46,4 +43,4 @@ A professional Python project to experiment with tokenization and context limits
   ```
 
 - **Health Check**: `GET /health`
->>>>>>> 54cc93c (Initial commit: Modular FastAPI architecture with Repository pattern and robust logging)
+
