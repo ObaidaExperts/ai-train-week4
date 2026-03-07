@@ -1,0 +1,29 @@
+{
+    "name": "Tokenization Experiment Enhanced DevContainer",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": ".."
+    },
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "python.terminal.activateEnvInSelectedTerminal": true,
+                "editor.formatOnSave": true,
+                "editor.codeActionsOnSave": {
+                    "source.fixAll.ruff": "explicit",
+                    "source.organizeImports.ruff": "explicit"
+                }
+            },
+            "extensions": [
+                "ms-python.python",
+                "charliermarsh.ruff",
+                "ms-python.mypy-type-checker",
+                "tamasfe.even-better-toml",
+                "ms-python.vscode-pylance"
+            ]
+        }
+    },
+    "postCreateCommand": "poetry install",
+    "remoteUser": "root"
+}
