@@ -70,8 +70,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td><small>${log.Model}</small></td>
                         <td>${log.Experiment_Type}</td>
                         <td class="params-cell">
-                            ${log.Temperature !== "" ? `T: ${log.Temperature}` : '-'} 
-                            ${log.Top_P !== "" ? `| P: ${log.Top_P}` : ''}
+                            ${log.Temperature !== "" && log.Temperature !== null ? `T: ${log.Temperature}` : '-'} 
+                            ${log.Top_P !== "" && log.Top_P !== null ? `| P: ${log.Top_P}` : ''}
+                            ${log.Logprobs === "True" || log.Logprobs === true ? `| LP: Yes` : ''}
                         </td>
                         <td>In: ${log.Input_Tokens} | Out: ${log.Output_Tokens}</td>
                         <td class="text-accent">$${parseFloat(log.Cost_USD).toFixed(6)}</td>

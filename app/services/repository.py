@@ -17,7 +17,7 @@ class ResultsRepository:
         header = [
             "Timestamp", "Request_ID", "Experiment_Type", "Model", "Prompt", "Response",
             "Input_Tokens", "Output_Tokens", "Cost_USD", "Status",
-            "Temperature", "Top_P", "Top_K"
+            "Temperature", "Top_P", "Top_K", "Logprobs"
         ]
         
         should_init = not os.path.exists(self.file_path)
@@ -44,7 +44,7 @@ class ResultsRepository:
         header = [
             "Timestamp", "Request_ID", "Experiment_Type", "Model", "Prompt", "Response",
             "Input_Tokens", "Output_Tokens", "Cost_USD", "Status",
-            "Temperature", "Top_P", "Top_K"
+            "Temperature", "Top_P", "Top_K", "Logprobs"
         ]
         try:
             with open(self.file_path, mode='a', newline='') as file:

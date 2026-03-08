@@ -144,7 +144,8 @@ class ExperimentService:
                 "Status": status,
                 "Temperature": temperature,
                 "Top_P": top_p,
-                "Top_K": top_k
+                "Top_K": top_k,
+                "Logprobs": return_logprobs
             })
             raise
 
@@ -178,7 +179,8 @@ class ExperimentService:
             "Status": status,
             "Temperature": temperature,
             "Top_P": top_p,
-            "Top_K": top_k
+            "Top_K": top_k,
+            "Logprobs": return_logprobs
         })
         
         
