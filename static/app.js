@@ -286,4 +286,153 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchMetadata();
     checkHealth();
     refreshLogs();
+
+    // ═══════════════════════════════════════════
+    // Tab switching
+    // ═══════════════════════════════════════════
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => { p.classList.remove('active'); p.classList.add('hidden'); });
+            btn.classList.add('active');
+            const target = document.getElementById(btn.dataset.tab);
+            target.classList.remove('hidden');
+            target.classList.add('active');
+        });
+    });
+
+    // ═══════════════════════════════════════════
+    // Tool Calling Tab
+    // ═══════════════════════════════════════════
+    const toolRunBtn    = document.getElementById('tool-run-btn');
+    const toolErrorBtn  = document.getElementById('tool-error-btn');
+    const toolPromptArea = document.getElementById('tool-prompt');
+    const toolTraceCard  = document.getElementById('tool-trace-card');
+    const toolTraceSteps = document.getElementById('tool-trace-steps');
+    const toolStatusBadge = document.getElementById('tool-status-badge');
+    const toolSchemasDisplay = document.getElementById('tool-schemas-display');
+
+    // Example prompt pills
+    document.querySelectorAll('.example-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+            toolPromptArea.value = pill.dataset.prompt;
+            toolPromptArea.focus();
+        });
+    });
+
+    // Fetch and display schemas
+    async function loadToolSchemas() {
+        try {
+            const res = await fetch('/tools/schemas');
+            const data = await res.json();
+            toolSchemasDisplay.textContent = JSON.stringify(data.tools, null, 2);
+        } catch (e) {
+            toolSchemasDisplay.textContent = 'Failed to load tool schemas.';
+        }
+    }
+    loadToolSchemas();
+
+    // Render step helper
+    function renderStep(step) {
+        const el = document.createElement('div');
+        el.className = 'trace-step';
+
+        if (step.step === 'user_prompt') {
+            el.classList.add('step-user');
+            el.innerHTML = `<div class="trace-step-title">👤 User Prompt</div>
+                <div class="trace-step-body">${step.content}</div>`;
+
+        } else if (step.step === 'tool_call_requested') {
+            el.classList.add('step-tool-call');
+            let argsHtml = '';
+            try {
+                const parsed = JSON.parse(step.args_raw);
+                argsHtml = Object.entries(parsed)
+                    .map(([k, v]) => `<span class="arg-chip">${k}: <strong>${JSON.stringify(v)}</strong></span>`)
+                    .join(' ');
+            } catch { argsHtml = `<code>${step.args_raw}</code>`; }
+            el.innerHTML = `<div class="trace-step-title">🔧 Tool Called: ${step.tool}</div>
+                <div class="trace-step-body">Arguments: ${argsHtml}</div>`;
+
+        } else if (step.step === 'tool_result') {
+            el.classList.add('step-result');
+            el.innerHTML = `<div class="trace-step-title">✅ Tool Result: ${step.tool}</div>
+                <div class="trace-step-body"><pre>${JSON.stringify(step.result, null, 2)}</pre></div>`;
+
+        } else if (step.step === 'tool_error') {
+            el.classList.add('step-error');
+            el.innerHTML = `<div class="trace-step-title">❌ Tool Error: ${step.tool}</div>
+                <div class="trace-step-body" style="color:var(--danger)">${step.error}</div>`;
+
+        } else if (step.step === 'final_answer') {
+            el.classList.add('step-answer');
+            el.innerHTML = `<div class="trace-step-title">🤖 Final AI Answer</div>
+                <div class="trace-step-body">${step.content}</div>`;
+
+        } else if (step.step === 'model_direct_answer') {
+            el.classList.add('step-direct');
+            el.innerHTML = `<div class="trace-step-title">💬 Direct Answer (no tool triggered)</div>
+                <div class="trace-step-body">${step.content}</div>`;
+        }
+
+        toolTraceSteps.appendChild(el);
+    }
+
+    async function runToolCall(forceError = false) {
+        const prompt = toolPromptArea.value.trim();
+        if (!prompt && !forceError) return alert('Please enter a prompt');
+
+        const enabledTools = [...document.querySelectorAll('.tool-checkbox:checked')].map(cb => cb.value);
+
+        toolRunBtn.disabled = true;
+        toolErrorBtn.disabled = true;
+        toolRunBtn.textContent = 'Running...';
+        toolTraceSteps.innerHTML = '';
+        toolTraceCard.classList.remove('hidden');
+        toolStatusBadge.className = 'tool-status-badge';
+        toolStatusBadge.textContent = '';
+
+        try {
+            const payload = {
+                prompt: prompt || 'What is the weather in Paris?',
+                model: 'gpt-4o',
+                enabled_tools: enabledTools.length ? enabledTools : null,
+                force_error: forceError
+            };
+            const res = await fetch('/tool-call', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error((await res.json()).detail || 'Tool call failed');
+            const data = await res.json();
+
+            // Render trace steps with staggered animation
+            for (const step of data.steps) {
+                await new Promise(r => setTimeout(r, 150));
+                renderStep(step);
+                toolTraceCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            if (data.tool_error) {
+                toolStatusBadge.className = 'tool-status-badge error';
+                toolStatusBadge.textContent = '❌ Tool Error Handled';
+            } else if (!data.tool_called) {
+                toolStatusBadge.className = 'tool-status-badge direct';
+                toolStatusBadge.textContent = '💬 Direct Response';
+            } else {
+                toolStatusBadge.className = 'tool-status-badge success';
+                toolStatusBadge.textContent = `✅ Tool Executed: ${data.tool_called}`;
+            }
+        } catch (e) {
+            toolTraceSteps.innerHTML = `<div class="trace-step step-error"><div class="trace-step-title">Error</div><div class="trace-step-body" style="color:var(--danger)">${e.message}</div></div>`;
+        } finally {
+            toolRunBtn.disabled = false;
+            toolErrorBtn.disabled = false;
+            toolRunBtn.textContent = '▶ Run Tool Call';
+        }
+    }
+
+    toolRunBtn.addEventListener('click', () => runToolCall(false));
+    toolErrorBtn.addEventListener('click', () => runToolCall(true));
 });
