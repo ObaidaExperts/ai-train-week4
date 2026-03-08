@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiText = document.getElementById('api-text');
 
     const compareMode = document.getElementById('compare-mode');
+    const logprobsMode = document.getElementById('logprobs-mode');
     const temperatureSlider = document.getElementById('temperature');
     const topP_Slider = document.getElementById('top_p');
     const topK_Input = document.getElementById('top_k');
@@ -25,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const responseCompareDisplay = document.getElementById('ai-response-compare');
     const responseContainer = document.getElementById('response-container');
     const comparisonLabel = document.getElementById('comparison-label');
+    const logprobsLegend = document.getElementById('logprobs-legend');
 
     // Update Slider Labels
     temperatureSlider.oninput = () => tempValLabel.textContent = temperatureSlider.value;
@@ -95,6 +97,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return await res.json();
     }
 
+    // Helper: Build Logprobs HTML
+    function buildLogprobsHtml(logprobsArray) {
+        let html = '';
+        logprobsArray.forEach(lp => {
+            const prob = lp.probability_pct;
+            let cls = 'high';
+            if (prob < 50) cls = 'low';
+            else if (prob < 90) cls = 'medium';
+            // Replace newlines with <br> for proper rendering in sequence
+            const safeToken = lp.token.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+            html += `<span class="token-logprob ${cls}" title="Logprob: ${lp.logprob.toFixed(2)} (${prob}%)">${safeToken}</span>`;
+        });
+        return html;
+    }
+
     // Run Experiment
     async function runExperiment(text = null) {
         const prompt = text || promptArea.value;
@@ -103,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const temperature = parseFloat(temperatureSlider.value);
         const top_p = parseFloat(topP_Slider.value);
         const top_k = parseInt(topK_Input.value) || null;
+        const return_logprobs = logprobsMode.checked;
         
         if (!prompt) return alert('Please enter a prompt');
 
@@ -128,7 +146,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 prompt, model, experiment_type,
                 temperature: compareMode.checked ? 0 : temperature,
                 top_p: compareMode.checked ? 1 : top_p,
-                top_k: compareMode.checked ? null : top_k
+                top_k: compareMode.checked ? null : top_k,
+                return_logprobs: return_logprobs
             };
             
             const dataPrimary = await callApi(payloadPrimary);
@@ -137,7 +156,14 @@ document.addEventListener('DOMContentLoaded', () => {
             tokenDisplay.textContent = analysisP.input_tokens + analysisP.output_tokens;
             costDisplay.textContent = `$${parseFloat(analysisP.cost_usd).toFixed(6)}`;
             inputCostDisplay.textContent = `Experiment: ${analysisP.experiment_type} ${compareMode.checked ? '(T=0)' : ''}`;
-            responseDisplay.innerHTML = `<p>${dataPrimary.response}</p>`;
+            
+            if (dataPrimary.logprobs) {
+                responseDisplay.innerHTML = `<p style="line-height:2;">${buildLogprobsHtml(dataPrimary.logprobs)}</p>`;
+                logprobsLegend.classList.remove('hidden');
+            } else {
+                responseDisplay.innerHTML = `<p>${dataPrimary.response}</p>`;
+                if (!compareMode.checked) logprobsLegend.classList.add('hidden');
+            }
 
             // Update Window UI (based on primary)
             const percent = analysisP.usage_percentage;
@@ -146,11 +172,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 2nd Run: Comparison (Creative/Slider settings)
             if (compareMode.checked) {
-                const payloadSecondary = { prompt, model, experiment_type, temperature, top_p, top_k };
+                const payloadSecondary = { prompt, model, experiment_type, temperature, top_p, top_k, return_logprobs };
                 const dataSec = await callApi(payloadSecondary);
                 const analysisS = dataSec.log_analysis;
                 
-                responseCompareDisplay.innerHTML = `<p>${dataSec.response}</p>`;
+                if (dataSec.logprobs) {
+                    responseCompareDisplay.innerHTML = `<p style="line-height:2;">${buildLogprobsHtml(dataSec.logprobs)}</p>`;
+                    logprobsLegend.classList.remove('hidden');
+                } else {
+                    responseCompareDisplay.innerHTML = `<p>${dataSec.response}</p>`;
+                }
                 outputCostDisplay.textContent = `Creative: T=${temperature}`; // Reuse output cost for meta
             } else {
                 outputCostDisplay.textContent = `Out: ${analysisP.output_tokens} tokens`;

@@ -8,3 +8,5 @@ class ChatRequest(BaseModel):
     temperature: float | None = None
     top_p: float | None = None
     top_k: int | None = None
+    return_logprobs: bool = False
+

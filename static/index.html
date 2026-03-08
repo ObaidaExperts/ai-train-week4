@@ -44,6 +44,10 @@
                         <label for="compare-mode">Comparison Mode</label>
                         <input type="checkbox" id="compare-mode">
                     </div>
+                    <div class="form-group toggle-group">
+                        <label for="logprobs-mode">Enable Logprobs</label>
+                        <input type="checkbox" id="logprobs-mode" title="Only available for OpenAI models">
+                    </div>
                     <button id="run-btn" class="primary-btn">Analyze & Run</button>
                     <button id="stress-test-btn" class="secondary-btn">Stress Test Context</button>
                 </div>
@@ -91,6 +95,11 @@
 
             <section class="response-section card">
                 <h2>AI Response <span id="comparison-label" class="hidden">(Comparison Active)</span></h2>
+                <div id="logprobs-legend" class="hidden" style="margin-bottom: 1rem; font-size: 0.85rem; display: flex; gap: 1rem;">
+                    <span><span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:var(--success); margin-right:4px;"></span> High Confidence (&gt;90%)</span>
+                    <span><span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:var(--warning); margin-right:4px;"></span> Medium Confidence (50-90%)</span>
+                    <span><span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:var(--danger); margin-right:4px;"></span> Low Confidence (&lt;50%)</span>
+                </div>
                 <div id="response-container" class="response-grid">
                     <div id="ai-response" class="response-content">
                         <p class="placeholder">Response will appear here...</p>

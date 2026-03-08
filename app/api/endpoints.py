@@ -38,14 +38,20 @@ def chat(
         experiment_type=request.experiment_type,
         temperature=request.temperature,
         top_p=request.top_p,
-        top_k=request.top_k
+        top_k=request.top_k,
+        return_logprobs=request.return_logprobs
     )
     
-    return {
+    response_data = {
         "request_id": request_id,
         "response": result["response"],
         "log_analysis": result["log_analysis"]
     }
+    
+    if "logprobs" in result:
+        response_data["logprobs"] = result["logprobs"]
+        
+    return response_data
 
 @router.get("/results")
 def get_results(

@@ -48,7 +48,8 @@ class ExperimentService:
         experiment_type: ExperimentType | str = ExperimentType.BASELINE,
         temperature: float | None = None,
         top_p: float | None = None,
-        top_k: int | None = None
+        top_k: int | None = None,
+        return_logprobs: bool = False
     ) -> dict[str, Any]:
         """Perform a real chat completion and return the response and analysis."""
         model_type = model if isinstance(model, AIModel) else AIModel(model)
@@ -106,12 +107,25 @@ class ExperimentService:
                 }
                 if temperature is not None: params["temperature"] = temperature
                 if top_p is not None: params["top_p"] = top_p
+                if return_logprobs:
+                    params["logprobs"] = True
+                    params["top_logprobs"] = 5
                 # OpenAI doesn't natively support top_k in ChatCompletion
                 
                 response = self.openai_client.chat.completions.create(**params)
                 response_text = response.choices[0].message.content
                 output_tokens = response.usage.completion_tokens if response.usage else 0
                 input_tokens = response.usage.prompt_tokens if response.usage else input_tokens
+                
+                if return_logprobs and getattr(response.choices[0], 'logprobs', None) and getattr(response.choices[0].logprobs, 'content', None):
+                    import math
+                    logprobs_data = []
+                    for token_info in response.choices[0].logprobs.content:
+                        logprobs_data.append({
+                            "token": token_info.token,
+                            "logprob": token_info.logprob,
+                            "probability_pct": round(math.exp(token_info.logprob) * 100, 2)
+                        })
         except Exception as e:
             status = f"Error: {str(e)}"
             logger.error(f"AI execution failed for {model_str}: {e}")
@@ -167,10 +181,16 @@ class ExperimentService:
             "Top_K": top_k
         })
         
-        return {
+        
+        result = {
             "response": response_text,
             "log_analysis": analysis
         }
+        
+        if return_logprobs and 'logprobs_data' in locals():
+            result["logprobs"] = logprobs_data
+            
+        return result
 
     def get_results(self) -> list[dict[str, Any]]:
         """Retrieve all logged experiment results via the repository."""

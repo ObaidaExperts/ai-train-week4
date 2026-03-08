@@ -323,3 +323,27 @@ td {
     background: rgba(34, 197, 94, 0.1);
     color: var(--success);
 }
+
+/* Logprobs Highlighting */
+.token-logprob {
+    display: inline;
+    padding: 0 1px;
+    border-radius: 2px;
+    cursor: help;
+    border-bottom: 2px solid transparent;
+}
+
+.token-logprob.high {
+    border-bottom-color: var(--success);
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.token-logprob.medium {
+    border-bottom-color: var(--warning);
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.token-logprob.low {
+    border-bottom-color: var(--danger);
+    background: rgba(244, 63, 94, 0.2);
+}
