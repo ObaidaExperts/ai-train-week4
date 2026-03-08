@@ -361,3 +361,148 @@ td {
     border-bottom-color: var(--danger);
     background: rgba(244, 63, 94, 0.2);
 }
+
+/* Token Probability Panel */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.section-header h2 { margin-bottom: 0; }
+
+.prob-summary {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.prob-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 0.75rem;
+    padding: 0.6rem 1rem;
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+    font-family: monospace;
+}
+
+.stat-value.success { color: var(--success); }
+.stat-value.danger { color: var(--danger); }
+
+.token-prob-table-container {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 400px;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+}
+
+#token-prob-table { border-collapse: collapse; }
+
+#token-prob-table th {
+    position: sticky;
+    top: 0;
+    background: rgba(15, 20, 35, 0.95);
+    backdrop-filter: blur(8px);
+    z-index: 2;
+}
+
+#token-prob-table td:first-child {
+    color: var(--text-muted);
+    font-family: monospace;
+    font-size: 0.75rem;
+}
+
+.token-cell {
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    background: rgba(255,255,255,0.03);
+    border-radius: 3px;
+    padding: 0.1rem 0.4rem;
+    white-space: pre;
+}
+
+.logprob-cell {
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.prob-cell {
+    font-family: monospace;
+    font-weight: 600;
+}
+
+.conf-bar-cell { min-width: 140px; }
+
+.conf-bar-track {
+    height: 8px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.conf-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.conf-bar-fill.high { background: linear-gradient(90deg, #059669, var(--success)); }
+.conf-bar-fill.medium { background: linear-gradient(90deg, #d97706, var(--warning)); }
+.conf-bar-fill.low { background: linear-gradient(90deg, #be123c, var(--danger)); }
+
+.level-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.level-badge.high {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.level-badge.medium {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.level-badge.low {
+    background: rgba(244, 63, 94, 0.15);
+    color: var(--danger);
+    border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in { animation: fadeInUp 0.4s ease; }

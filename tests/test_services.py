@@ -29,7 +29,8 @@ def test_repository_log_and_get(repository):
         "Input_Tokens": 10,
         "Output_Tokens": 20,
         "Cost_USD": 0.001,
-        "Status": "Success"
+        "Status": "Success",
+        "Logprobs": False
     }
     repository.log_result(result)
     results = repository.get_all_results()

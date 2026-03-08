@@ -54,7 +54,8 @@ def test_chat_endpoint(mock_service: MagicMock) -> None:
             "experiment_type": "Decoding Strategy",
             "temperature": 0.5,
             "top_p": 0.9,
-            "top_k": 40
+            "top_k": 40,
+            "return_logprobs": True
         })
         assert response.status_code == 200
         data = response.json()

@@ -28,6 +28,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const comparisonLabel = document.getElementById('comparison-label');
     const logprobsLegend = document.getElementById('logprobs-legend');
 
+    // Token probability panel
+    const tokenProbSection = document.getElementById('token-prob-section');
+    const tokenProbBody = document.getElementById('token-prob-body');
+    const avgConfEl = document.getElementById('avg-confidence');
+    const minConfEl = document.getElementById('min-confidence');
+    const highConfCountEl = document.getElementById('high-conf-count');
+    const lowConfCountEl = document.getElementById('low-conf-count');
+
     // Update Slider Labels
     temperatureSlider.oninput = () => tempValLabel.textContent = temperatureSlider.value;
     topP_Slider.oninput = () => topP_ValLabel.textContent = topP_Slider.value;
@@ -98,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return await res.json();
     }
 
-    // Helper: Build Logprobs HTML
+    // Helper: Build Logprobs HTML (colored spans in response)
     function buildLogprobsHtml(logprobsArray) {
         let html = '';
         logprobsArray.forEach(lp => {
@@ -111,6 +119,60 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `<span class="token-logprob ${cls}" title="Logprob: ${lp.logprob.toFixed(2)} (${prob}%)">${safeToken}</span>`;
         });
         return html;
+    }
+
+    // Helper: Render Token Probability Panel
+    function renderTokenProbabilities(logprobsArray) {
+        if (!logprobsArray || logprobsArray.length === 0) {
+            tokenProbSection.classList.add('hidden');
+            return;
+        }
+
+        // Stats calculations
+        const probs = logprobsArray.map(lp => lp.probability_pct);
+        const avg = (probs.reduce((a, b) => a + b, 0) / probs.length).toFixed(1);
+        const min = Math.min(...probs).toFixed(1);
+        const highCount = probs.filter(p => p >= 90).length;
+        const lowCount = probs.filter(p => p < 50).length;
+
+        avgConfEl.textContent = `${avg}%`;
+        minConfEl.textContent = `${min}%`;
+        highConfCountEl.textContent = highCount;
+        lowConfCountEl.textContent = lowCount;
+
+        // Build table rows
+        tokenProbBody.innerHTML = '';
+        logprobsArray.forEach((lp, i) => {
+            const prob = lp.probability_pct;
+            let level = 'high';
+            if (prob < 50) level = 'low';
+            else if (prob < 90) level = 'medium';
+
+            // Display whitespace/newlines visibly
+            const displayToken = lp.token
+                .replace(/\n/g, '\\n')
+                .replace(/\t/g, '\\t')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+            const probColor = level === 'high' ? 'var(--success)' : level === 'medium' ? 'var(--warning)' : 'var(--danger)';
+
+            const row = `<tr class="fade-in">
+                <td>${i + 1}</td>
+                <td><span class="token-cell">${displayToken}</span></td>
+                <td class="logprob-cell">${lp.logprob.toFixed(4)}</td>
+                <td class="prob-cell" style="color:${probColor}">${prob}%</td>
+                <td class="conf-bar-cell">
+                    <div class="conf-bar-track">
+                        <div class="conf-bar-fill ${level}" style="width:${Math.min(prob, 100)}%"></div>
+                    </div>
+                </td>
+                <td><span class="level-badge ${level}">${level}</span></td>
+            </tr>`;
+            tokenProbBody.insertAdjacentHTML('beforeend', row);
+        });
+
+        tokenProbSection.classList.remove('hidden');
     }
 
     // Run Experiment
@@ -161,9 +223,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (dataPrimary.logprobs) {
                 responseDisplay.innerHTML = `<p style="line-height:2;">${buildLogprobsHtml(dataPrimary.logprobs)}</p>`;
                 logprobsLegend.classList.remove('hidden');
+                renderTokenProbabilities(dataPrimary.logprobs);
             } else {
                 responseDisplay.innerHTML = `<p>${dataPrimary.response}</p>`;
                 if (!compareMode.checked) logprobsLegend.classList.add('hidden');
+                tokenProbSection.classList.add('hidden');
             }
 
             // Update Window UI (based on primary)

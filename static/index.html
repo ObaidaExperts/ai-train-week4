@@ -110,6 +110,46 @@
                 </div>
             </section>
 
+            <section class="token-prob-section card hidden" id="token-prob-section">
+                <div class="section-header">
+                    <h2>🔬 Token-Level Probabilities</h2>
+                    <div class="prob-summary" id="prob-summary">
+                        <div class="prob-stat">
+                            <span class="stat-label">Avg Confidence</span>
+                            <span class="stat-value" id="avg-confidence">-</span>
+                        </div>
+                        <div class="prob-stat">
+                            <span class="stat-label">Min Confidence</span>
+                            <span class="stat-value danger" id="min-confidence">-</span>
+                        </div>
+                        <div class="prob-stat">
+                            <span class="stat-label">High Confidence Tokens</span>
+                            <span class="stat-value success" id="high-conf-count">-</span>
+                        </div>
+                        <div class="prob-stat">
+                            <span class="stat-label">Low Confidence Tokens</span>
+                            <span class="stat-value danger" id="low-conf-count">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="token-prob-table-container">
+                    <table id="token-prob-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Token</th>
+                                <th>Logprob</th>
+                                <th>Probability</th>
+                                <th>Confidence Bar</th>
+                                <th>Level</th>
+                            </tr>
+                        </thead>
+                        <tbody id="token-prob-body">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
             <section class="history-section card">
                 <h2>Experiment Logs</h2>
                 <div class="table-container">

@@ -23,7 +23,8 @@ def test_repository_log_result_content(temp_csv):
         "Input_Tokens": 1,
         "Output_Tokens": 2,
         "Cost_USD": 0.1,
-        "Status": "Success"
+        "Status": "Success",
+        "Logprobs": True
     }
     repo.log_result(result)
     
