@@ -7,6 +7,7 @@ class ExperimentType(str, Enum):
     BASELINE = "Baseline"
     PRICING_COMPARISON = "Pricing Comparison"
     LIMIT_TEST = "Limit Test"
+    DECODING_STRATEGY = "Decoding Strategy"
 
 
 class AIModel(str, Enum):
@@ -28,9 +29,9 @@ class AIModel(str, Enum):
     GEMINI_1_0_PRO = "gemini-1.0-pro"
 
     # Claude Models
-    CLAUDE_3_5_SONNET = "claude-3-5-sonnet-20240620"
-    CLAUDE_3_OPUS = "claude-3-opus-20240229"
-    CLAUDE_3_HAIKU = "claude-3-haiku-20240307"
+    CLAUDE_4_6_SONNET = "claude-sonnet-4-6"
+    CLAUDE_4_6_OPUS = "claude-opus-4-6"
+    CLAUDE_4_5_HAIKU = "claude-haiku-4-5-20251001"
 
     @property
     def context_limit(self) -> int:
@@ -51,9 +52,9 @@ class AIModel(str, Enum):
             "gemini-1.5-flash": 1_000_000,
             "gemini-1.0-pro": 32_768,
             # Claude Models
-            "claude-3-5-sonnet-20240620": 200_000,
-            "claude-3-opus-20240229": 200_000,
-            "claude-3-haiku-20240307": 200_000,
+            "claude-sonnet-4-6": 200_000,
+            "claude-opus-4-6": 200_000,
+            "claude-haiku-4-5-20251001": 200_000,
         }
         return limits.get(self.value, 0)
 
@@ -76,9 +77,9 @@ class AIModel(str, Enum):
             "gemini-1.5-flash": {"input": 0.075, "output": 0.30},
             "gemini-1.0-pro": {"input": 0.50, "output": 1.50},
             # Claude Models
-            "claude-3-5-sonnet-20240620": {"input": 3.00, "output": 15.00},
-            "claude-3-opus-20240229": {"input": 15.00, "output": 75.00},
-            "claude-3-haiku-20240307": {"input": 0.25, "output": 1.25},
+            "claude-sonnet-4-6": {"input": 3.00, "output": 15.00},
+            "claude-opus-4-6": {"input": 5.00, "output": 25.00},
+            "claude-haiku-4-5-20251001": {"input": 1.00, "output": 5.00},
         }
         return prices.get(self.value, {"input": 0.0, "output": 0.0})
 

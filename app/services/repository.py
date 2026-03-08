@@ -16,7 +16,8 @@ class ResultsRepository:
         """Initialize CSV if it doesn't exist or has wrong header."""
         header = [
             "Timestamp", "Request_ID", "Experiment_Type", "Model", "Prompt", "Response",
-            "Input_Tokens", "Output_Tokens", "Cost_USD", "Status"
+            "Input_Tokens", "Output_Tokens", "Cost_USD", "Status",
+            "Temperature", "Top_P", "Top_K"
         ]
         
         should_init = not os.path.exists(self.file_path)
@@ -39,11 +40,18 @@ class ResultsRepository:
                 writer.writerow(header)
 
     def log_result(self, result: dict[str, Any]) -> None:
-        """Append a new result record to the CSV."""
+        """Append a new result record to the CSV using DictWriter."""
+        header = [
+            "Timestamp", "Request_ID", "Experiment_Type", "Model", "Prompt", "Response",
+            "Input_Tokens", "Output_Tokens", "Cost_USD", "Status",
+            "Temperature", "Top_P", "Top_K"
+        ]
         try:
             with open(self.file_path, mode='a', newline='') as file:
-                writer = csv.writer(file)
-                writer.writerow(result.values())
+                writer = csv.DictWriter(file, fieldnames=header)
+                # Ensure all keys are present even if None
+                row = {h: result.get(h, "") for h in header}
+                writer.writerow(row)
         except Exception as e:
             logger.error(f"Failed to log result to {self.file_path}: {e}")
             raise

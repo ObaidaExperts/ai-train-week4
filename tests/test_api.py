@@ -25,7 +25,7 @@ def test_metadata_endpoint() -> None:
     data = response.json()
     assert "models" in data
     assert "experiment_types" in data
-    assert "claude-3-5-sonnet-20240620" in data["models"]
+    assert "claude-sonnet-4-6" in data["models"]
     assert "Stress Test" in data["experiment_types"]
 
 @pytest.fixture
@@ -51,7 +51,10 @@ def test_chat_endpoint(mock_service: MagicMock) -> None:
         response = client.post("/chat", json={
             "prompt": "Hello", 
             "model": "gpt-4o",
-            "experiment_type": "Baseline"
+            "experiment_type": "Decoding Strategy",
+            "temperature": 0.5,
+            "top_p": 0.9,
+            "top_k": 40
         })
         assert response.status_code == 200
         data = response.json()

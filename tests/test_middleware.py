@@ -43,7 +43,7 @@ def test_exception_handler_middleware_openai_error():
     @app.get("/trigger-openai-error")
     async def trigger_error():
         # Simulate an OpenAI error with a body
-        error = openai.OpenAIError("Original Message")
+        error = openai.OpenAIError("Original Message Quota Exceeded")
         error.body = {"error": {"message": "Readable Quota Message"}}
         raise error
 

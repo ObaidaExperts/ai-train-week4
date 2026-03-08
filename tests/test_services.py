@@ -54,6 +54,7 @@ def test_experiment_service_analyze_text_mocked():
     mock_response = MagicMock()
     mock_response.choices[0].message.content = "Mocked response"
     mock_response.usage.completion_tokens = 50
+    mock_response.usage.prompt_tokens = 5
     mock_openai.chat.completions.create.return_value = mock_response
     
     result = service.analyze_text("Hello", AIModel.GPT_4O)
@@ -75,7 +76,11 @@ def test_experiment_service_analyze_claude_mocked():
     mock_message.usage.output_tokens = 20
     mock_anthropic.messages.create.return_value = mock_message
     
-    result = service.analyze_text("Hello Claude", AIModel.CLAUDE_3_5_SONNET)
+    result = service.analyze_text(
+        "Hello Claude", 
+        AIModel.CLAUDE_4_6_SONNET,
+        top_p=0.9
+    )
     
     assert result["response"] == "Claude response"
     assert result["log_analysis"]["input_tokens"] == 10
@@ -105,6 +110,7 @@ def test_experiment_service_repository_failure():
     mock_response = MagicMock()
     mock_response.choices[0].message.content = "Response"
     mock_response.usage.completion_tokens = 10
+    mock_response.usage.prompt_tokens = 5
     mock_openai.chat.completions.create.return_value = mock_response
     
     # Simulate repository failure
