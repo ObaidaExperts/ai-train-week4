@@ -27,6 +27,11 @@ class AIModel(str, Enum):
     GEMINI_1_5_FLASH = "gemini-1.5-flash"
     GEMINI_1_0_PRO = "gemini-1.0-pro"
 
+    # Claude Models
+    CLAUDE_3_5_SONNET = "claude-3-5-sonnet-20240620"
+    CLAUDE_3_OPUS = "claude-3-opus-20240229"
+    CLAUDE_3_HAIKU = "claude-3-haiku-20240307"
+
     @property
     def context_limit(self) -> int:
         """Return the context window limit for the model."""
@@ -45,6 +50,10 @@ class AIModel(str, Enum):
             "gemini-1.5-pro": 2_000_000,
             "gemini-1.5-flash": 1_000_000,
             "gemini-1.0-pro": 32_768,
+            # Claude Models
+            "claude-3-5-sonnet-20240620": 200_000,
+            "claude-3-opus-20240229": 200_000,
+            "claude-3-haiku-20240307": 200_000,
         }
         return limits.get(self.value, 0)
 
@@ -66,6 +75,10 @@ class AIModel(str, Enum):
             "gemini-1.5-pro": {"input": 3.50, "output": 10.50},
             "gemini-1.5-flash": {"input": 0.075, "output": 0.30},
             "gemini-1.0-pro": {"input": 0.50, "output": 1.50},
+            # Claude Models
+            "claude-3-5-sonnet-20240620": {"input": 3.00, "output": 15.00},
+            "claude-3-opus-20240229": {"input": 15.00, "output": 75.00},
+            "claude-3-haiku-20240307": {"input": 0.25, "output": 1.25},
         }
         return prices.get(self.value, {"input": 0.0, "output": 0.0})
 
@@ -75,6 +88,11 @@ class AIModel(str, Enum):
         return self.value.startswith("gemini")
 
     @property
+    def is_anthropic(self) -> bool:
+        """Check if model is an Anthropic model."""
+        return self.value.startswith("claude")
+
+    @property
     def is_openai(self) -> bool:
         """Check if model is an OpenAI model."""
-        return not self.is_gemini
+        return not self.is_gemini and not self.is_anthropic

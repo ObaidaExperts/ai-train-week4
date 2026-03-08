@@ -16,6 +16,7 @@ def test_repository_log_result_content(temp_csv):
     result = {
         "Timestamp": "2024-01-01",
         "Request_ID": "123",
+        "Experiment_Type": "Baseline",
         "Model": "test-model",
         "Prompt": "test prompt",
         "Response": "test response",

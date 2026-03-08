@@ -1,46 +1,49 @@
-# Tokenization and Context Limits Experiment
+# Tokenization and Context Limits Experiment Dashboard
 
-A professional Python project to experiment with tokenization and context limits using FastAPI, OpenAI, and Gemini.
+A premium AI experimentation platform built with FastAPI and Vanilla CSS. Analyze token counts, costs, and context limits across **OpenAI**, **Gemini**, and **Claude** models in real-time.
 
-## Features
-- **Token Analysis**: Count tokens for OpenAI and Gemini models.
-- **Cost Estimation**: Real-time cost calculation based on current pricing.
-- **Context Monitoring**: Track usage against model-specific context limits.
-- **Results Logging**: Persistent logging of all experiments to CSV.
-- **Modular Architecture**: Clean separation of concerns (API, Services, Core).
+![Dashboard Preview](file:///workspaces/ai-train-week4/static/screenshot_placeholder.png)
 
-## Project Structure
-- `app/api/`: API routers, schemas, and middleware.
-- `app/core/`: Centralized configuration and domain models.
-- `app/services/`: Business logic and data persistence (repository).
-- `tests/`: Automated test suite.
+## 🌟 Key Features
+- **Multi-Model Support**: Compare results across OpenAI (GPT-4o, o1), Gemini (1.5 Pro/Flash), and Claude (3.5 Sonnet, Opus, Haiku).
+- **Interactive Dashboard**: Modern, responsive UI to run experiments and visualize data.
+- **Dynamic Configuration**: UI automatically updates selections based on backend model definitions.
+- **Context Limit Monitoring**: Visual warnings when a prompt approaches 80%+ of a model's context window.
+- **Experiment Categorization**: Label experiments as "Stress Test", "Baseline", etc., for organized logging.
+- **Persistent Storage**: All results are saved to a version-controlled CSV repository.
+- **Graceful Error Handling**: Concise, human-readable API error messages for out-of-quota or rate-limit scenarios.
 
-## How to Run
+## 📁 Project Structure
+- `app/api/`: Endpoints, Pydantic schemas, and centralized exception middleware.
+- `app/core/`: Model definitions (pricing/limits), configuration, and tokenizers.
+- `app/services/`: `ExperimentService` (business logic) and `ResultsRepository` (CSV storage).
+- `static/`: Modern dashboard frontend (HTML/CSS/JS).
+- `tests/`: Comprehensive unit test suite covering API, logic, and persistence.
+
+## 🚀 Getting Started
 
 1. **Setup Environment**:
    ```bash
    cp .env.example .env
-   # Add your OPENAI_API_KEY to .env
+   # Add your API keys (OPENAI_API_KEY, ANTHROPIC_API_KEY) to .env
    ```
 
-2. **Start the server**:
+2. **Install Dependencies**:
+   ```bash
+   poetry install
+   ```
+
+3. **Start the server**:
    ```bash
    poetry run python -m app.main
    ```
 
-## API Usage
+4. **Open the Dashboard**:
+   Navigate to [http://localhost:8000](http://localhost:8000)
 
-- **Chat & Analyze**: `POST /chat`
-  ```bash
-  curl -X POST "http://localhost:8000/chat" \
-       -H "Content-Type: application/json" \
-       -d '{"prompt": "Hello world", "model": "gpt-4o"}'
-  ```
+## 🧪 Experiments
+Use the **"Stress Test"** button to automatically push a model's context window to its limits and observe the system's behavior and warnings.
 
-- **Get Results**: `GET /results`
-  ```bash
-  curl http://localhost:8000/results
-  ```
-
-- **Health Check**: `GET /health`
+## 📊 Results
+Logged experiments can be retrieved via the UI or by visiting `GET /results`.
 

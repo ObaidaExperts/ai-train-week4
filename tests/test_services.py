@@ -46,14 +46,15 @@ def test_experiment_service_calculate_cost():
 
 def test_experiment_service_analyze_text_mocked():
     mock_repo = MagicMock()
-    mock_client = MagicMock()
-    service = ExperimentService(repository=mock_repo, client=mock_client)
+    mock_openai = MagicMock()
+    mock_anthropic = MagicMock()
+    service = ExperimentService(repository=mock_repo, openai_client=mock_openai, anthropic_client=mock_anthropic)
     
     # Setup mock response
     mock_response = MagicMock()
     mock_response.choices[0].message.content = "Mocked response"
     mock_response.usage.completion_tokens = 50
-    mock_client.chat.completions.create.return_value = mock_response
+    mock_openai.chat.completions.create.return_value = mock_response
     
     result = service.analyze_text("Hello", AIModel.GPT_4O)
     
@@ -61,13 +62,33 @@ def test_experiment_service_analyze_text_mocked():
     assert result["log_analysis"]["input_tokens"] > 0
     assert mock_repo.log_result.called
 
+def test_experiment_service_analyze_claude_mocked():
+    mock_repo = MagicMock()
+    mock_openai = MagicMock()
+    mock_anthropic = MagicMock()
+    service = ExperimentService(repository=mock_repo, openai_client=mock_openai, anthropic_client=mock_anthropic)
+    
+    # Setup mock response
+    mock_message = MagicMock()
+    mock_message.content = [MagicMock(text="Claude response")]
+    mock_message.usage.input_tokens = 10
+    mock_message.usage.output_tokens = 20
+    mock_anthropic.messages.create.return_value = mock_message
+    
+    result = service.analyze_text("Hello Claude", AIModel.CLAUDE_3_5_SONNET)
+    
+    assert result["response"] == "Claude response"
+    assert result["log_analysis"]["input_tokens"] == 10
+    assert result["log_analysis"]["output_tokens"] == 20
+    assert mock_repo.log_result.called
+
 def test_experiment_service_api_error():
     mock_repo = MagicMock()
-    mock_client = MagicMock()
-    service = ExperimentService(repository=mock_repo, client=mock_client)
+    mock_openai = MagicMock()
+    service = ExperimentService(repository=mock_repo, openai_client=mock_openai)
     
     # Simulate an API error
-    mock_client.chat.completions.create.side_effect = Exception("OpenAI API Down")
+    mock_openai.chat.completions.create.side_effect = Exception("OpenAI API Down")
     
     with pytest.raises(Exception) as excinfo:
         service.analyze_text("Hello", AIModel.GPT_4O)
@@ -77,14 +98,14 @@ def test_experiment_service_api_error():
 
 def test_experiment_service_repository_failure():
     mock_repo = MagicMock()
-    mock_client = MagicMock()
-    service = ExperimentService(repository=mock_repo, client=mock_client)
+    mock_openai = MagicMock()
+    service = ExperimentService(repository=mock_repo, openai_client=mock_openai)
     
     # Setup mock response
     mock_response = MagicMock()
     mock_response.choices[0].message.content = "Response"
     mock_response.usage.completion_tokens = 10
-    mock_client.chat.completions.create.return_value = mock_response
+    mock_openai.chat.completions.create.return_value = mock_response
     
     # Simulate repository failure
     mock_repo.log_result.side_effect = Exception("Disk Full")

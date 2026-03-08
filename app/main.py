@@ -2,6 +2,8 @@ import os
 import logging
 import uvicorn
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from app.api.endpoints import router as experiments_router
 from app.api.middleware import ExceptionHandlerMiddleware
 from app.core.config import settings
@@ -23,9 +25,12 @@ app.add_middleware(ExceptionHandlerMiddleware)
 # Register routers
 app.include_router(experiments_router)
 
+# Serve static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 @app.get("/")
-def read_root() -> dict[str, str]:
-    return {"message": f"Welcome to the {settings.APP_NAME}"}
+def root_redirect():
+    return RedirectResponse(url="/static/index.html")
 
 @app.get("/health")
 def health_check() -> dict[str, str]:

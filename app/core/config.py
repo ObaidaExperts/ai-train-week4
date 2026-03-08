@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     
     # API Keys
     OPENAI_API_KEY: str | None = None
+    ANTHROPIC_API_KEY: str | None = None
     
     # Application Config
     APP_NAME: str = "Tokenization Chat Analysis API"
