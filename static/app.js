@@ -221,9 +221,22 @@ document.addEventListener('DOMContentLoaded', () => {
             inputCostDisplay.textContent = `Experiment: ${analysisP.experiment_type} ${compareMode.checked ? '(T=0)' : ''}`;
             
             if (dataPrimary.logprobs) {
+                // OpenAI: real token-level probabilities returned
                 responseDisplay.innerHTML = `<p style="line-height:2;">${buildLogprobsHtml(dataPrimary.logprobs)}</p>`;
                 logprobsLegend.classList.remove('hidden');
                 renderTokenProbabilities(dataPrimary.logprobs);
+            } else if (dataPrimary.logprobs_supported === false) {
+                // Non-OpenAI model: show response + a warning banner
+                responseDisplay.innerHTML = `<p>${dataPrimary.response}</p>`;
+                logprobsLegend.classList.add('hidden');
+                tokenProbSection.classList.remove('hidden');
+                tokenProbBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--warning);">
+                    ⚠️ ${dataPrimary.logprobs_note}
+                </td></tr>`;
+                avgConfEl.textContent = 'N/A';
+                minConfEl.textContent = 'N/A';
+                highConfCountEl.textContent = 'N/A';
+                lowConfCountEl.textContent = 'N/A';
             } else {
                 responseDisplay.innerHTML = `<p>${dataPrimary.response}</p>`;
                 if (!compareMode.checked) logprobsLegend.classList.add('hidden');

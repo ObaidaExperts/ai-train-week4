@@ -47,9 +47,19 @@ def chat(
         "response": result["response"],
         "log_analysis": result["log_analysis"]
     }
-    
-    if "logprobs" in result:
-        response_data["logprobs"] = result["logprobs"]
+
+    if request.return_logprobs:
+        if "logprobs" in result:
+            response_data["logprobs"] = result["logprobs"]
+            response_data["logprobs_supported"] = True
+        else:
+            # Provider does not support logprobs (e.g. Claude, Gemini)
+            response_data["logprobs"] = None
+            response_data["logprobs_supported"] = False
+            response_data["logprobs_note"] = (
+                f"Logprobs are only available for OpenAI models. "
+                f"'{request.model.value}' does not support token-level probabilities."
+            )
         
     return response_data
 
