@@ -45,7 +45,10 @@ class ExperimentService:
         prompt: str,
         model: AIModel | str = AIModel.GPT_4O,
         request_id: str | None = None,
-        experiment_type: ExperimentType | str = ExperimentType.BASELINE
+        experiment_type: ExperimentType | str = ExperimentType.BASELINE,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None
     ) -> dict[str, Any]:
         """Perform a real chat completion and return the response and analysis."""
         model_type = model if isinstance(model, AIModel) else AIModel(model)
@@ -73,20 +76,39 @@ class ExperimentService:
                 status = "Success (Gemini Simulation)"
             elif model_type.is_anthropic:
                 # Claude Execution
-                message = self.anthropic_client.messages.create(
-                    model=model_str,
-                    max_tokens=1024,
-                    messages=[{"role": "user", "content": prompt}]
-                )
+                params = {
+                    "model": model_str,
+                    "max_tokens": 1024,
+                    "messages": [{"role": "user", "content": prompt}]
+                }
+                if top_p is not None and top_p != 1.0:
+                    # If Top-P is actively being modified (not default 1.0), use it instead of temperature
+                    params["top_p"] = top_p
+                elif temperature is not None:
+                    # Otherwise, use temperature
+                    params["temperature"] = temperature
+                    
+                if top_k is not None:
+                    params["top_k"] = top_k
+
+                # Note: System prompts are handled differently in the new Messages API, 
+                # but for simplicity in this exercise we'll keep the prompt in the user message.
+                
+                message = self.anthropic_client.messages.create(**params)
                 response_text = message.content[0].text
                 output_tokens = message.usage.output_tokens
                 input_tokens = message.usage.input_tokens # Use actual tokens from API
             else:
                 # OpenAI Execution
-                response = self.openai_client.chat.completions.create(
-                    model=model_str,
-                    messages=[{"role": "user", "content": prompt}]
-                )
+                params = {
+                    "model": model_str,
+                    "messages": [{"role": "user", "content": prompt}]
+                }
+                if temperature is not None: params["temperature"] = temperature
+                if top_p is not None: params["top_p"] = top_p
+                # OpenAI doesn't natively support top_k in ChatCompletion
+                
+                response = self.openai_client.chat.completions.create(**params)
                 response_text = response.choices[0].message.content
                 output_tokens = response.usage.completion_tokens if response.usage else 0
                 input_tokens = response.usage.prompt_tokens if response.usage else input_tokens
@@ -105,7 +127,10 @@ class ExperimentService:
                 "Input_Tokens": input_tokens,
                 "Output_Tokens": 0,
                 "Cost_USD": self.calculate_cost(input_tokens, 0, model_str),
-                "Status": status
+                "Status": status,
+                "Temperature": temperature,
+                "Top_P": top_p,
+                "Top_K": top_k
             })
             raise
 
@@ -136,7 +161,10 @@ class ExperimentService:
             "Input_Tokens": input_tokens,
             "Output_Tokens": output_tokens,
             "Cost_USD": cost,
-            "Status": status
+            "Status": status,
+            "Temperature": temperature,
+            "Top_P": top_p,
+            "Top_K": top_k
         })
         
         return {

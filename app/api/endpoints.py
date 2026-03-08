@@ -35,7 +35,10 @@ def chat(
         prompt=request.prompt,
         model=request.model,
         request_id=request_id,
-        experiment_type=request.experiment_type
+        experiment_type=request.experiment_type,
+        temperature=request.temperature,
+        top_p=request.top_p,
+        top_k=request.top_k
     )
     
     return {
