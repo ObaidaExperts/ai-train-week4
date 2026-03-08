@@ -35,3 +35,21 @@ def test_exception_handler_middleware_debug_mode():
     assert response.status_code == 500
     data = response.json()
     assert data["detail"] == "Debugging error"
+def test_exception_handler_middleware_openai_error():
+    import openai
+    app = FastAPI()
+    app.add_middleware(ExceptionHandlerMiddleware)
+
+    @app.get("/trigger-openai-error")
+    async def trigger_error():
+        # Simulate an OpenAI error with a body
+        error = openai.OpenAIError("Original Message")
+        error.body = {"error": {"message": "Readable Quota Message"}}
+        raise error
+
+    client = TestClient(app)
+    response = client.get("/trigger-openai-error")
+
+    assert response.status_code == 429
+    data = response.json()
+    assert data["detail"] == "Readable Quota Message"

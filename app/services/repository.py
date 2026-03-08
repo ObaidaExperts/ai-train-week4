@@ -15,7 +15,7 @@ class ResultsRepository:
     def _ensure_file_exists(self) -> None:
         """Initialize CSV if it doesn't exist or has wrong header."""
         header = [
-            "Timestamp", "Request_ID", "Model", "Prompt", "Response",
+            "Timestamp", "Request_ID", "Experiment_Type", "Model", "Prompt", "Response",
             "Input_Tokens", "Output_Tokens", "Cost_USD", "Status"
         ]
         

@@ -10,13 +10,23 @@ client = TestClient(app)
 
 def test_read_root() -> None:
     response = client.get("/")
+    # root now redirects to dashboard
     assert response.status_code == 200
-    assert response.json() == {"message": "Welcome to the Tokenization Chat Analysis API"}
+    assert "AI Experiment Dashboard" in response.text
 
 def test_health_check() -> None:
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json()["status"] == "healthy"
+
+def test_metadata_endpoint() -> None:
+    response = client.get("/metadata")
+    assert response.status_code == 200
+    data = response.json()
+    assert "models" in data
+    assert "experiment_types" in data
+    assert "claude-3-5-sonnet-20240620" in data["models"]
+    assert "Stress Test" in data["experiment_types"]
 
 @pytest.fixture
 def mock_service():
@@ -26,6 +36,7 @@ def mock_service():
         "response": "Hello! I am an AI.",
         "log_analysis": {
             "model": "gpt-4o",
+            "experiment_type": "Baseline",
             "input_tokens": 5,
             "output_tokens": 10,
             "cost_usd": 0.0001,
@@ -37,11 +48,16 @@ def mock_service():
 def test_chat_endpoint(mock_service: MagicMock) -> None:
     app.dependency_overrides[get_experiment_service] = lambda: mock_service
     try:
-        response = client.post("/chat", json={"prompt": "Hello", "model": "gpt-4o"})
+        response = client.post("/chat", json={
+            "prompt": "Hello", 
+            "model": "gpt-4o",
+            "experiment_type": "Baseline"
+        })
         assert response.status_code == 200
         data = response.json()
         assert "request_id" in data
         assert data["response"] == "Hello! I am an AI."
+        assert mock_service.analyze_text.called
     finally:
         app.dependency_overrides.clear()
 

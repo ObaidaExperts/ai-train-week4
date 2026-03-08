@@ -2,7 +2,7 @@ import uuid
 import logging
 from typing import Any
 from fastapi import APIRouter, Depends
-
+from app.core.models import AIModel, ExperimentType
 from app.api.schemas import ChatRequest
 from app.services.experiment_service import ExperimentService
 
@@ -11,6 +11,14 @@ router = APIRouter()
 
 def get_experiment_service() -> ExperimentService:
     return ExperimentService()
+
+@router.get("/metadata")
+def get_metadata() -> dict[str, Any]:
+    """Return available models and experiment types."""
+    return {
+        "models": [model.value for model in AIModel],
+        "experiment_types": [exp.value for exp in ExperimentType]
+    }
 
 @router.post("/chat")
 def chat(
@@ -26,7 +34,8 @@ def chat(
     result = service.analyze_text(
         prompt=request.prompt,
         model=request.model,
-        request_id=request_id
+        request_id=request_id,
+        experiment_type=request.experiment_type
     )
     
     return {
