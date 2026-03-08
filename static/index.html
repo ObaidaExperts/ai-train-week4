@@ -20,7 +20,14 @@
             </div>
         </header>
 
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="experiment-tab">🧪 Experiment</button>
+            <button class="tab-btn" data-tab="toolcall-tab">🔧 Tool Calling</button>
+        </nav>
+
         <main>
+            <!-- ═══════════════════ EXPERIMENT TAB ═══════════════════ -->
+            <div id="experiment-tab" class="tab-panel active">
             <section class="experiment-controls card">
                 <h2>New Experiment</h2>
                 <div class="form-group">
@@ -171,6 +178,65 @@
                     </table>
                 </div>
             </section>
+            </div><!-- /experiment-tab -->
+
+            <!-- ═══════════════════ TOOL CALLING TAB ═══════════════════ -->
+            <div id="toolcall-tab" class="tab-panel hidden">
+
+                <section class="card tool-controls-card">
+                    <h2>🔧 Tool / Function Calling</h2>
+                    <p class="tool-intro">Select one or more tools, enter a prompt, and watch the full tool-calling loop execute in real time.</p>
+
+                    <div class="tool-selectors">
+                        <label class="tool-chip">
+                            <input type="checkbox" class="tool-checkbox" value="get_weather" checked>
+                            <span>🌦️ get_weather</span>
+                        </label>
+                        <label class="tool-chip">
+                            <input type="checkbox" class="tool-checkbox" value="calculate" checked>
+                            <span>🧩 calculate</span>
+                        </label>
+                        <label class="tool-chip">
+                            <input type="checkbox" class="tool-checkbox" value="get_stock_price" checked>
+                            <span>📈 get_stock_price</span>
+                        </label>
+                    </div>
+
+                    <div class="tool-prompt-row">
+                        <div class="form-group" style="flex:1; margin:0;">
+                            <label for="tool-prompt">Prompt</label>
+                            <textarea id="tool-prompt" placeholder="e.g. What is the weather in Tokyo?" rows="3"></textarea>
+                        </div>
+                        <div class="tool-btn-group">
+                            <button id="tool-run-btn" class="primary-btn">▶ Run Tool Call</button>
+                            <button id="tool-error-btn" class="secondary-btn" title="Simulate a malformed tool argument to demonstrate error handling">⚠️ Demo Error</button>
+                        </div>
+                    </div>
+
+                    <div class="tool-examples">
+                        <span class="example-label">Try:</span>
+                        <button class="example-pill" data-prompt="What is the weather in Tokyo in celsius?">Weather in Tokyo</button>
+                        <button class="example-pill" data-prompt="Calculate sqrt(144) + pow(2, 10)">Math Calculation</button>
+                        <button class="example-pill" data-prompt="What is the stock price for NVDA?">Stock Price</button>
+                    </div>
+                </section>
+
+                <section class="card tool-trace-card hidden" id="tool-trace-card">
+                    <div class="section-header">
+                        <h2>📎 Execution Trace</h2>
+                        <div id="tool-status-badge" class="tool-status-badge"></div>
+                    </div>
+                    <div id="tool-trace-steps" class="trace-steps"></div>
+                </section>
+
+                <section class="card tool-schema-card">
+                    <h2>📄 Tool Schemas (JSON Definition)</h2>
+                    <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:1rem;">These are the exact JSON schemas sent to the model to describe what tools are available.</p>
+                    <pre id="tool-schemas-display" class="schema-display">Loading...</pre>
+                </section>
+
+            </div><!-- /toolcall-tab -->
+
         </main>
 
         <footer>

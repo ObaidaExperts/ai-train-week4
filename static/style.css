@@ -506,3 +506,184 @@ td {
 }
 
 .fade-in { animation: fadeInUp 0.4s ease; }
+
+/* ─── Tab Navigation ───────────────────────────────────────────── */
+.tab-nav {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+}
+
+.tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    margin-bottom: -1px;
+}
+
+.tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+
+.tab-btn.active {
+    color: var(--primary-light);
+    border-bottom-color: var(--primary);
+    background: rgba(99, 102, 241, 0.08);
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ─── Tool Calling Tab ─────────────────────────────────────────── */
+.tool-intro {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 1.25rem;
+    line-height: 1.6;
+}
+
+.tool-selectors {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+}
+
+.tool-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: 9999px;
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.tool-chip:hover { background: rgba(99, 102, 241, 0.18); border-color: var(--primary); }
+
+.tool-chip input[type="checkbox"] { accent-color: var(--primary); width: 14px; height: 14px; }
+
+.tool-prompt-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    margin-bottom: 1rem;
+}
+
+.tool-btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.tool-examples {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
+
+.example-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
+
+.example-pill {
+    background: rgba(168, 85, 247, 0.1);
+    border: 1px solid rgba(168, 85, 247, 0.25);
+    color: var(--accent);
+    border-radius: 9999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.example-pill:hover { background: rgba(168, 85, 247, 0.25); transform: translateY(-1px); }
+
+/* ─── Execution Trace ──────────────────────────────────────────── */
+.trace-steps { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.trace-step {
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-left: 4px solid transparent;
+    background: rgba(255,255,255,0.03);
+    animation: fadeInUp 0.35s ease;
+    position: relative;
+}
+
+.trace-step.step-user    { border-left-color: var(--primary-light); }
+.trace-step.step-tool-call { border-left-color: var(--accent); }
+.trace-step.step-result  { border-left-color: var(--success); }
+.trace-step.step-error   { border-left-color: var(--danger); background: rgba(244,63,94,0.05); }
+.trace-step.step-answer  { border-left-color: var(--warning); }
+.trace-step.step-direct  { border-left-color: var(--text-muted); }
+
+.trace-step-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 0.5rem;
+    opacity: 0.7;
+}
+
+.trace-step-body { font-size: 0.9rem; line-height: 1.6; }
+
+.trace-step-body pre {
+    background: rgba(0,0,0,0.3);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    overflow-x: auto;
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+}
+
+.arg-chip {
+    display: inline-block;
+    background: rgba(99,102,241,0.12);
+    border: 1px solid rgba(99,102,241,0.25);
+    border-radius: 4px;
+    padding: 0.1rem 0.4rem;
+    font-family: monospace;
+    font-size: 0.8rem;
+    margin: 0.1rem;
+}
+
+.tool-status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.tool-status-badge.success { background: rgba(16,185,129,0.15); color: var(--success); }
+.tool-status-badge.error   { background: rgba(244,63,94,0.15);  color: var(--danger); }
+.tool-status-badge.direct  { background: rgba(148,163,184,0.15); color: var(--text-muted); }
+
+/* ─── Schema Display ───────────────────────────────────────────── */
+.schema-display {
+    background: rgba(0,0,0,0.35);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    font-size: 0.8rem;
+    line-height: 1.7;
+    overflow-x: auto;
+    color: #a5f3fc;
+    max-height: 400px;
+    overflow-y: auto;
+}
