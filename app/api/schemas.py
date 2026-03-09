@@ -17,3 +17,10 @@ class ToolCallRequest(BaseModel):
     enabled_tools: list[str] | None = None  # None means all tools
     force_error: bool = False  # Inject a malformed arg to demo error handling
 
+
+class AgenticFlowRequest(BaseModel):
+    """Request for Single vs Agentic Flow (trip planning)."""
+
+    user_request: str
+    model: str = "gpt-4o"
+
