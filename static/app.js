@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     topP_Slider.oninput = () => topP_ValLabel.textContent = topP_Slider.value;
     topK_Input.oninput = () => topK_ValLabel.textContent = topK_Input.value || 'None';
 
-    // Fetch and populate metadata
+    // Fetch and populate metadata (agenticModel defined later in Single vs Agentic section)
     async function fetchMetadata() {
         try {
             const res = await fetch('/metadata');
@@ -51,6 +51,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Set Default if Decoding Strategy exists
             if (data.experiment_types.includes("Decoding Strategy")) {
                 experimentTypeSelect.value = "Decoding Strategy";
+            }
+            // Populate agentic model selector from same source
+            const agenticEl = document.getElementById('agentic-model');
+            if (agenticEl) {
+                agenticEl.innerHTML = data.models.map(m => `<option value="${m}">${m}</option>`).join('');
             }
         } catch (e) { console.error('Failed to fetch metadata'); }
     }
@@ -312,8 +317,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const toolStatusBadge = document.getElementById('tool-status-badge');
     const toolSchemasDisplay = document.getElementById('tool-schemas-display');
 
-    // Example prompt pills
-    document.querySelectorAll('.example-pill').forEach(pill => {
+    // Example prompt pills (only tool-call pills with data-prompt, not agentic pills)
+    document.querySelectorAll('.example-pill[data-prompt]').forEach(pill => {
         pill.addEventListener('click', () => {
             toolPromptArea.value = pill.dataset.prompt;
             toolPromptArea.focus();
@@ -435,4 +440,231 @@ document.addEventListener('DOMContentLoaded', () => {
 
     toolRunBtn.addEventListener('click', () => runToolCall(false));
     toolErrorBtn.addEventListener('click', () => runToolCall(true));
+
+    // ═══════════════════════════════════════════
+    // Single vs Agentic Flow
+    // ═══════════════════════════════════════════
+    const agenticTab = document.getElementById('agentic-flow-tab');
+    const agenticRequest = document.getElementById('agentic-request');
+    const agenticModel = document.getElementById('agentic-model');
+    const agenticSingleBtn = document.getElementById('agentic-single-btn');
+    const agenticAgenticBtn = document.getElementById('agentic-agentic-btn');
+    const agenticBothBtn = document.getElementById('agentic-both-btn');
+    const agenticSingleResponse = document.getElementById('agentic-single-response');
+    const agenticSingleMeta = document.getElementById('agentic-single-meta');
+    const agenticAgenticResponse = document.getElementById('agentic-agentic-response');
+    const agenticAgenticMeta = document.getElementById('agentic-agentic-meta');
+    const agenticAgenticPlan = document.getElementById('agentic-agentic-plan');
+    const agenticAgenticTrace = document.getElementById('agentic-agentic-trace');
+    const agenticPlanDetails = document.getElementById('agentic-plan-details');
+    const agenticTraceDetails = document.getElementById('agentic-trace-details');
+    const agenticComparisonSummary = document.getElementById('agentic-comparison-summary');
+
+    // Example pills: use delegation on the agentic tab container
+    if (agenticTab) {
+        agenticTab.addEventListener('click', (e) => {
+            const pill = e.target.closest('button.agentic-example');
+            if (pill && pill.dataset.request && agenticRequest) {
+                e.preventDefault();
+                e.stopPropagation();
+                agenticRequest.value = pill.dataset.request;
+                agenticRequest.focus();
+            }
+        });
+    }
+
+    function setButtonLoading(btn, loading) {
+        const text = btn.querySelector('.btn-text');
+        const spinner = btn.querySelector('.btn-spinner');
+        if (text && spinner) {
+            if (loading) {
+                btn.disabled = true;
+                spinner.classList.remove('hidden');
+            } else {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+            }
+        }
+    }
+
+    function parseApiError(body) {
+        if (!body || typeof body !== 'object') return 'Request failed';
+        const d = body.detail;
+        if (typeof d === 'string') return d;
+        if (Array.isArray(d) && d.length > 0) {
+            const first = d[0];
+            return first.msg || first.message || JSON.stringify(first);
+        }
+        return body.message || 'Request failed';
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function renderAgenticSingle(data) {
+        agenticSingleMeta.textContent = `${data.input_tokens || 0} in / ${data.output_tokens || 0} out tokens`;
+        agenticSingleResponse.innerHTML = `<div class="response-text">${escapeHtml(data.response || '').replace(/\n/g, '<br>')}</div>`;
+    }
+
+    function renderAgenticFlow(data) {
+        agenticAgenticMeta.textContent = `${data.input_tokens || 0} in / ${data.output_tokens || 0} out · ${data.iterations || 0} iterations`;
+        agenticAgenticResponse.innerHTML = `<div class="response-text">${escapeHtml(data.response || '').replace(/\n/g, '<br>')}</div>`;
+
+        if (data.plan && data.plan.steps) {
+            agenticPlanDetails.classList.remove('hidden');
+            agenticPlanDetails.open = false;
+            agenticAgenticPlan.innerHTML = `<pre>${escapeHtml(JSON.stringify(data.plan, null, 2))}</pre>`;
+        } else {
+            agenticPlanDetails.classList.add('hidden');
+        }
+
+        if (data.steps && data.steps.length > 0) {
+            agenticTraceDetails.classList.remove('hidden');
+            agenticTraceDetails.open = false;
+            let traceHtml = '';
+            data.steps.forEach((s) => {
+                if (s.phase === 'planning') {
+                    traceHtml += `<div class="trace-step step-user"><strong>Phase 1: Planning</strong></div>`;
+                } else if (s.phase === 'tool_call') {
+                    const resultStr = s.result ? escapeHtml(JSON.stringify(s.result)) : '';
+                    traceHtml += `<div class="trace-step step-tool-call"><strong>Tool:</strong> ${escapeHtml(s.tool)} → <code>${resultStr}</code></div>`;
+                } else if (s.phase === 'tool_error') {
+                    traceHtml += `<div class="trace-step step-error"><strong>Tool Error:</strong> ${escapeHtml(s.tool)} — ${escapeHtml(s.error || '')}</div>`;
+                } else if (s.phase === 'complete') {
+                    traceHtml += `<div class="trace-step step-answer"><strong>Phase 2: Complete</strong></div>`;
+                }
+            });
+            agenticAgenticTrace.innerHTML = traceHtml;
+        } else {
+            agenticTraceDetails.classList.add('hidden');
+        }
+    }
+
+    async function runAgenticSingle() {
+        if (!agenticRequest || !agenticModel) return;
+        const user_request = agenticRequest.value.trim();
+        if (!user_request) return alert('Please enter a trip request');
+
+        setButtonLoading(agenticSingleBtn, true);
+        agenticSingleResponse.innerHTML = '<p class="placeholder agentic-loading">Running single prompt...</p>';
+        agenticSingleMeta.textContent = '';
+        agenticComparisonSummary.classList.add('hidden');
+
+        try {
+            const res = await fetch('/agentic-flow/single', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_request, model: agenticModel.value })
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(parseApiError(body));
+            renderAgenticSingle(body);
+        } catch (e) {
+            agenticSingleResponse.innerHTML = `<p class="agentic-error">Error: ${escapeHtml(e.message)}</p>`;
+        } finally {
+            setButtonLoading(agenticSingleBtn, false);
+        }
+    }
+
+    async function runAgenticFlow() {
+        if (!agenticRequest || !agenticModel) return;
+        const user_request = agenticRequest.value.trim();
+        if (!user_request) return alert('Please enter a trip request');
+
+        setButtonLoading(agenticAgenticBtn, true);
+        agenticAgenticResponse.innerHTML = '<p class="placeholder agentic-loading">Running agentic flow (planning + tools)...</p>';
+        agenticAgenticMeta.textContent = '';
+        agenticPlanDetails.classList.add('hidden');
+        agenticTraceDetails.classList.add('hidden');
+        agenticComparisonSummary.classList.add('hidden');
+
+        try {
+            const res = await fetch('/agentic-flow/agentic', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_request, model: agenticModel.value })
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(parseApiError(body));
+            renderAgenticFlow(body);
+        } catch (e) {
+            agenticAgenticResponse.innerHTML = `<p class="agentic-error">Error: ${escapeHtml(e.message)}</p>`;
+        } finally {
+            setButtonLoading(agenticAgenticBtn, false);
+        }
+    }
+
+    async function runAgenticBoth() {
+        if (!agenticRequest || !agenticModel) return;
+        const user_request = agenticRequest.value.trim();
+        if (!user_request) return alert('Please enter a trip request');
+
+        setButtonLoading(agenticSingleBtn, true);
+        setButtonLoading(agenticAgenticBtn, true);
+        setButtonLoading(agenticBothBtn, true);
+        agenticSingleResponse.innerHTML = '<p class="placeholder agentic-loading">Running...</p>';
+        agenticAgenticResponse.innerHTML = '<p class="placeholder agentic-loading">Running...</p>';
+        agenticSingleMeta.textContent = '';
+        agenticAgenticMeta.textContent = '';
+        agenticPlanDetails.classList.add('hidden');
+        agenticTraceDetails.classList.add('hidden');
+        agenticComparisonSummary.classList.add('hidden');
+
+        try {
+            const [singleRes, agenticRes] = await Promise.all([
+                fetch('/agentic-flow/single', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_request, model: agenticModel.value })
+                }),
+                fetch('/agentic-flow/agentic', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_request, model: agenticModel.value })
+                })
+            ]);
+
+            const singleBody = await singleRes.json().catch(() => ({}));
+            const agenticBody = await agenticRes.json().catch(() => ({}));
+
+            const singleData = singleRes.ok ? singleBody : null;
+            const agenticData = agenticRes.ok ? agenticBody : null;
+
+            if (singleData) renderAgenticSingle(singleData);
+            else {
+                agenticSingleResponse.innerHTML = `<p class="agentic-error">Error: ${escapeHtml(parseApiError(singleBody))}</p>`;
+            }
+
+            if (agenticData) renderAgenticFlow(agenticData);
+            else {
+                agenticAgenticResponse.innerHTML = `<p class="agentic-error">Error: ${escapeHtml(parseApiError(agenticBody))}</p>`;
+            }
+
+            if (singleData && agenticData) {
+                const singleTokens = (singleData.input_tokens || 0) + (singleData.output_tokens || 0);
+                const agenticTokens = (agenticData.input_tokens || 0) + (agenticData.output_tokens || 0);
+                const diff = agenticTokens - singleTokens;
+                agenticComparisonSummary.innerHTML = `
+                    <span>Single: ${singleTokens} tokens</span>
+                    <span>Agentic: ${agenticTokens} tokens (${agenticData.iterations || 0} iterations)</span>
+                    <span class="agentic-diff">${diff > 0 ? '+' : ''}${diff} tokens for agentic</span>
+                `;
+                agenticComparisonSummary.classList.remove('hidden');
+            }
+        } catch (e) {
+            agenticSingleResponse.innerHTML = `<p class="agentic-error">Error: ${escapeHtml(e.message)}</p>`;
+            agenticAgenticResponse.innerHTML = `<p class="agentic-error">Error: ${escapeHtml(e.message)}</p>`;
+        } finally {
+            setButtonLoading(agenticSingleBtn, false);
+            setButtonLoading(agenticAgenticBtn, false);
+            setButtonLoading(agenticBothBtn, false);
+        }
+    }
+
+    if (agenticSingleBtn) agenticSingleBtn.addEventListener('click', runAgenticSingle);
+    if (agenticAgenticBtn) agenticAgenticBtn.addEventListener('click', runAgenticFlow);
+    if (agenticBothBtn) agenticBothBtn.addEventListener('click', runAgenticBoth);
 });

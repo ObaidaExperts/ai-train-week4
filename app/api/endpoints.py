@@ -3,9 +3,11 @@ import logging
 from typing import Any
 from fastapi import APIRouter, Depends
 from app.core.models import AIModel, ExperimentType
-from app.api.schemas import ChatRequest, ToolCallRequest
+from app.api.schemas import ChatRequest, ToolCallRequest, AgenticFlowRequest
 from app.services.experiment_service import ExperimentService
 from app.services.tool_service import ToolCallingService, TOOLS
+from app.services.single_prompt_service import SinglePromptService
+from app.services.agentic_service import AgenticService
 
 logger = logging.getLogger("api")
 router = APIRouter()
@@ -120,3 +122,31 @@ def run_tool_call(request: ToolCallRequest) -> dict[str, Any]:
         enabled_tools=enabled
     )
     return result
+
+
+# ---------------------------------------------------------------------------
+# Single vs Agentic Flow (trip planning)
+# ---------------------------------------------------------------------------
+
+@router.post("/agentic-flow/single")
+def agentic_flow_single(request: AgenticFlowRequest) -> dict[str, Any]:
+    """
+    Execute trip planning with a single prompt (one LLM call, no tools).
+    """
+    service = SinglePromptService()
+    return service.run(
+        user_request=request.user_request,
+        model=request.model,
+    )
+
+
+@router.post("/agentic-flow/agentic")
+def agentic_flow_agentic(request: AgenticFlowRequest) -> dict[str, Any]:
+    """
+    Execute trip planning using an agent loop with planning, role separation, and tools.
+    """
+    service = AgenticService()
+    return service.run(
+        user_request=request.user_request,
+        model=request.model,
+    )

@@ -23,6 +23,7 @@
         <nav class="tab-nav">
             <button class="tab-btn active" data-tab="experiment-tab">🧪 Experiment</button>
             <button class="tab-btn" data-tab="toolcall-tab">🔧 Tool Calling</button>
+            <button class="tab-btn" data-tab="agentic-flow-tab">🔄 Single vs Agentic</button>
         </nav>
 
         <main>
@@ -236,6 +237,91 @@
                 </section>
 
             </div><!-- /toolcall-tab -->
+
+            <!-- ═══════════════════ SINGLE VS AGENTIC TAB ═══════════════════ -->
+            <div id="agentic-flow-tab" class="tab-panel hidden">
+
+                <section class="card tool-controls-card">
+                    <h2>🔄 Single-Agent vs Agentic Flow</h2>
+                    <p class="tool-intro">Compare trip planning with a single prompt (one LLM call) vs an agentic flow (planning + tools + agent loop).</p>
+
+                    <div class="agentic-info-callout">
+                        <span class="agentic-info-item">📄 <strong>Single:</strong> 1 API call, no tools</span>
+                        <span class="agentic-info-item">🤖 <strong>Agentic:</strong> Planning step + tool calls (weather, calculate)</span>
+                    </div>
+
+                    <div class="tool-prompt-row">
+                        <div class="form-group" style="flex:1; margin:0;">
+                            <label for="agentic-request">Trip Request</label>
+                            <textarea id="agentic-request" placeholder="e.g. Plan a 3-day trip to Paris with $500 budget" rows="3"></textarea>
+                        </div>
+                        <div class="form-group" style="margin:0; min-width: 140px;">
+                            <label for="agentic-model">Model</label>
+                            <select id="agentic-model">
+                                <option value="gpt-4o">gpt-4o</option>
+                                <option value="gpt-4o-mini">gpt-4o-mini</option>
+                                <option value="claude-sonnet-4-6">claude-sonnet-4-6</option>
+                                <option value="claude-opus-4-6">claude-opus-4-6</option>
+                                <option value="claude-haiku-4-5-20251001">claude-haiku-4-5-20251001</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="agentic-btn-row">
+                        <button type="button" id="agentic-single-btn" class="primary-btn" title="One prompt, one response">
+                            <span class="btn-text">▶ Single Prompt</span>
+                            <span class="btn-spinner hidden"></span>
+                        </button>
+                        <button type="button" id="agentic-agentic-btn" class="secondary-btn" title="Planning + tools + agent loop">
+                            <span class="btn-text">▶ Agentic Flow</span>
+                            <span class="btn-spinner hidden"></span>
+                        </button>
+                        <button type="button" id="agentic-both-btn" class="accent-btn" title="Run both and compare side by side">
+                            <span class="btn-text">▶ Run Both (Compare)</span>
+                            <span class="btn-spinner hidden"></span>
+                        </button>
+                    </div>
+
+                    <div class="tool-examples" id="agentic-examples">
+                        <span class="example-label">Try:</span>
+                        <button type="button" class="example-pill agentic-example" data-request="Plan a 3-day trip to Paris with $500 budget">Paris 3 days $500</button>
+                        <button type="button" class="example-pill agentic-example" data-request="2 days in Tokyo, $300, include weather">Tokyo 2 days $300</button>
+                        <button type="button" class="example-pill agentic-example" data-request="Weekend in Rome, budget $400">Rome weekend $400</button>
+                    </div>
+                </section>
+
+                <div class="agentic-comparison-summary hidden" id="agentic-comparison-summary"></div>
+
+                <section class="agentic-results-grid" id="agentic-results">
+                    <div class="card agentic-result-card agentic-single-card" id="agentic-single-card">
+                        <div class="section-header">
+                            <h3>📄 Single Prompt</h3>
+                            <span class="agentic-meta" id="agentic-single-meta"></span>
+                        </div>
+                        <div id="agentic-single-response" class="agentic-response">
+                            <p class="placeholder">Run Single Prompt to see result...</p>
+                        </div>
+                    </div>
+                    <div class="card agentic-result-card agentic-agentic-card" id="agentic-agentic-card">
+                        <div class="section-header">
+                            <h3>🤖 Agentic Flow</h3>
+                            <span class="agentic-meta" id="agentic-agentic-meta"></span>
+                        </div>
+                        <details class="agentic-details hidden" id="agentic-plan-details">
+                            <summary>📋 Execution Plan</summary>
+                            <div id="agentic-agentic-plan" class="agentic-plan-content"></div>
+                        </details>
+                        <div id="agentic-agentic-response" class="agentic-response">
+                            <p class="placeholder">Run Agentic Flow to see result...</p>
+                        </div>
+                        <details class="agentic-details hidden" id="agentic-trace-details">
+                            <summary>📎 Execution Trace</summary>
+                            <div id="agentic-agentic-trace" class="agentic-trace-content"></div>
+                        </details>
+                    </div>
+                </section>
+
+            </div><!-- /agentic-flow-tab -->
 
         </main>
 
