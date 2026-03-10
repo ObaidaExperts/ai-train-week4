@@ -380,8 +380,30 @@
                 <section class="card hidden" id="multi-sdk-all-results-section">
                     <div class="section-header">
                         <h2>📊 Results (All Providers)</h2>
+                        <span class="multi-sdk-summary" id="multi-sdk-summary"></span>
                     </div>
                     <div id="multi-sdk-all-results" class="multi-sdk-results-single"></div>
+                    <div class="multi-sdk-comparison-section hidden" id="multi-sdk-comparison-section">
+                        <h3>📈 Metrics Comparison</h3>
+                        <p class="tool-intro">Compare trade-offs. Rate quality (1–5 ★) after reviewing each result.</p>
+                        <div class="table-container">
+                            <table class="metrics-table" id="multi-sdk-metrics-table">
+                                <thead>
+                                    <tr>
+                                        <th>Provider</th>
+                                        <th>Model</th>
+                                        <th>TTFT</th>
+                                        <th>Total</th>
+                                        <th>In</th>
+                                        <th>Out</th>
+                                        <th>Cost ($)</th>
+                                        <th>Quality</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="multi-sdk-metrics-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </section>
 
             </div><!-- /multi-sdk-tab -->

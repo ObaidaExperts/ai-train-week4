@@ -504,6 +504,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     }
 
+    function shortenError(err) {
+        if (!err || typeof err !== 'string') return 'Error';
+        if (err.includes('429') || err.includes('quota') || err.includes('rate limit')) return 'Quota / rate limit exceeded';
+        if (err.includes('insufficient_quota')) return 'Quota exceeded';
+        if (err.includes('Connection') || err.includes('ECONNREFUSED')) return 'Connection failed (server down?)';
+        if (err.includes('not configured')) return err;
+        const first = err.split('\n')[0].trim();
+        return first.length > 80 ? first.slice(0, 77) + '...' : first;
+    }
+
+    function formatDuration(ms) {
+        if (ms == null || ms === 0) return '—';
+        if (ms >= 1000) return (ms / 1000).toFixed(2) + 's';
+        return Math.round(ms) + 'ms';
+    }
+
     function renderAgenticSingle(data) {
         agenticSingleMeta.textContent = `${data.input_tokens || 0} in / ${data.output_tokens || 0} out tokens`;
         agenticSingleResponse.innerHTML = `<div class="response-text">${escapeHtml(data.response || '').replace(/\n/g, '<br>')}</div>`;
@@ -680,6 +696,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const multiSdkSingleMeta = document.getElementById('multi-sdk-single-meta');
     const multiSdkAllResultsSection = document.getElementById('multi-sdk-all-results-section');
     const multiSdkAllResults = document.getElementById('multi-sdk-all-results');
+    const multiSdkComparisonSection = document.getElementById('multi-sdk-comparison-section');
+    const multiSdkMetricsBody = document.getElementById('multi-sdk-metrics-body');
+    let multiSdkQualityScores = {};
 
     if (multiSdkTab) {
         multiSdkTab.addEventListener('click', (e) => {
@@ -709,7 +728,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderMultiSdkSingle(data) {
-        if (multiSdkSingleMeta) multiSdkSingleMeta.textContent = `${data.provider} · ${data.model} · ${data.input_tokens || 0} in / ${data.output_tokens || 0} out · ${data.duration_ms || 0}ms`;
+        const cost = data.cost_usd != null ? data.cost_usd.toFixed(6) : '—';
+        const dur = formatDuration(data.duration_ms);
+        if (multiSdkSingleMeta) multiSdkSingleMeta.textContent = `${data.provider} · ${data.model} · ${data.input_tokens || 0} in / ${data.output_tokens || 0} out · ${dur} · $${cost}`;
         if (multiSdkSingleResponse) {
             if (data.error) {
                 multiSdkSingleResponse.innerHTML = `<p class="agentic-error">Error: ${escapeHtml(data.error)}</p>`;
@@ -728,6 +749,7 @@ document.addEventListener('DOMContentLoaded', () => {
         multiSdkSingleResponse.innerHTML = '<p class="placeholder agentic-loading">Running...</p>';
         multiSdkSingleMeta.textContent = '';
         multiSdkAllResultsSection.classList.add('hidden');
+        if (multiSdkComparisonSection) multiSdkComparisonSection.classList.add('hidden');
 
         try {
             const res = await fetch('/multi-sdk/run', {
@@ -754,6 +776,7 @@ document.addEventListener('DOMContentLoaded', () => {
         multiSdkSingleResponse.innerHTML = '<p class="placeholder agentic-loading">Running all providers...</p>';
         multiSdkSingleMeta.textContent = '';
         multiSdkAllResultsSection.classList.add('hidden');
+        if (multiSdkComparisonSection) multiSdkComparisonSection.classList.add('hidden');
 
         try {
             const res = await fetch('/multi-sdk/run-all', {
@@ -767,14 +790,31 @@ document.addEventListener('DOMContentLoaded', () => {
             const results = body.results || [];
             multiSdkSingleResponse.innerHTML = '<p class="placeholder">See results below.</p>';
 
+            const successCount = results.filter(r => !r.error).length;
+            const failCount = results.length - successCount;
+            const summaryEl = document.getElementById('multi-sdk-summary');
+            if (summaryEl) {
+                summaryEl.textContent = `${successCount} succeeded` + (failCount ? `, ${failCount} failed` : '');
+                summaryEl.className = 'multi-sdk-summary' + (failCount ? ' has-errors' : '');
+            }
+
             multiSdkAllResults.innerHTML = results.map((r) => {
-                const errHtml = r.error ? `<p class="agentic-error">${escapeHtml(r.error)}</p>` : '';
+                const hasError = !!r.error;
+                const statusBadge = hasError
+                    ? '<span class="multi-sdk-status error" title="' + escapeHtml(r.error) + '">✗ Error</span>'
+                    : '<span class="multi-sdk-status success">✓ Success</span>';
+                const errHtml = r.error
+                    ? `<p class="agentic-error"><span class="error-short">${escapeHtml(shortenError(r.error))}</span><details class="error-details"><summary>Details</summary><pre class="error-full">${escapeHtml(r.error)}</pre></details></p>`
+                    : '';
                 const respHtml = r.response ? `<div class="response-text">${escapeHtml(r.response).replace(/\n/g, '<br>')}</div>` : '';
+                const costStr = r.cost_usd != null ? r.cost_usd.toFixed(6) : '—';
+                const rowClass = hasError ? 'multi-sdk-result-row error-row' : 'multi-sdk-result-row';
                 return `
-                    <div class="multi-sdk-result-row">
+                    <div class="${rowClass}">
                         <div class="multi-sdk-row-header">
+                            ${statusBadge}
                             <strong>${escapeHtml(r.provider)}</strong> · ${escapeHtml(r.model || '-')}
-                            <span class="multi-sdk-row-meta">${r.input_tokens || 0} in / ${r.output_tokens || 0} out · ${r.duration_ms || 0}ms</span>
+                            <span class="multi-sdk-row-meta">${r.input_tokens || 0} in / ${r.output_tokens || 0} out · ${formatDuration(r.duration_ms)} · $${costStr}</span>
                         </div>
                         <div class="multi-sdk-row-body">
                             ${errHtml}
@@ -784,7 +824,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }).join('');
 
+            multiSdkQualityScores = {};
+            multiSdkMetricsBody.innerHTML = results.map((r) => {
+                const key = `${r.provider}:${r.model || r.provider}`;
+                const ttft = r.ttft_ms != null ? formatDuration(r.ttft_ms) : '—';
+                const total = formatDuration(r.duration_ms);
+                const cost = r.cost_usd != null ? r.cost_usd.toFixed(6) : '0';
+                const stars = [1,2,3,4,5].map(s => `<button type="button" class="quality-star" data-key="${escapeHtml(key)}" data-score="${s}" title="Rate ${s}">★</button>`).join('');
+                const rowClass = r.error ? 'metrics-row-error' : '';
+                return `
+                    <tr class="${rowClass}">
+                        <td>${escapeHtml(r.provider)}</td>
+                        <td>${escapeHtml(r.model || '-')}</td>
+                        <td>${ttft}</td>
+                        <td>${total}</td>
+                        <td>${r.input_tokens || 0}</td>
+                        <td>${r.output_tokens || 0}</td>
+                        <td>$${cost}</td>
+                        <td class="quality-cell"><span class="quality-stars" data-key="${escapeHtml(key)}">${stars}</span></td>
+                    </tr>
+                `;
+            }).join('');
+
+            multiSdkMetricsBody.querySelectorAll('.quality-star').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const key = btn.dataset.key;
+                    const score = parseInt(btn.dataset.score, 10);
+                    multiSdkQualityScores[key] = score;
+                    const row = btn.closest('tr');
+                    const stars = row.querySelectorAll('.quality-star');
+                    stars.forEach((s, i) => s.classList.toggle('active', i < score));
+                });
+            });
+
             multiSdkAllResultsSection.classList.remove('hidden');
+            if (multiSdkComparisonSection) multiSdkComparisonSection.classList.remove('hidden');
         } catch (e) {
             multiSdkSingleResponse.innerHTML = `<p class="agentic-error">Error: ${escapeHtml(e.message)}</p>`;
         } finally {

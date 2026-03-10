@@ -1,13 +1,8 @@
 """
-Multi-SDK Model Execution — Task 6
+Multi-SDK Model Execution — Task 6 + Task 7
 
-Runs the same task (trip planning) across different providers:
-- OpenAI
-- Anthropic (Claude)
-- Gemini
-- Local (vLLM via OpenAI-compatible API)
-
-Normalized prompt and consistent output schema.
+Runs the same task across providers with metrics: latency (TTFT, total),
+token usage, cost, and quality scoring.
 """
 
 import logging
@@ -23,7 +18,33 @@ logger = logging.getLogger("multi_sdk_service")
 
 
 # ---------------------------------------------------------------------------
-# Normalized output schema
+# Pricing (USD per 1M tokens) for cost calculation
+# ---------------------------------------------------------------------------
+
+MODEL_PRICING: dict[str, dict[str, float]] = {
+    "gpt-4o-mini": {"input": 0.15, "output": 0.60},
+    "gpt-4o": {"input": 2.50, "output": 10.00},
+    "claude-sonnet-4-6": {"input": 3.00, "output": 15.00},
+    "claude-opus-4-6": {"input": 5.00, "output": 25.00},
+    "claude-haiku-4-5-20251001": {"input": 1.00, "output": 5.00},
+    "gemini-2.0-flash": {"input": 0.075, "output": 0.30},
+    "gemini-1.5-flash": {"input": 0.075, "output": 0.30},
+    "gemini-1.5-pro": {"input": 3.50, "output": 10.50},
+}
+
+
+def _calc_cost(provider: str, model: str, input_tokens: int, output_tokens: int) -> float:
+    """Calculate cost in USD. Local providers return 0."""
+    if provider in ("vllm", "llamacpp"):
+        return 0.0
+    prices = MODEL_PRICING.get(model, {"input": 0.0, "output": 0.0})
+    in_cost = (input_tokens / 1_000_000) * prices["input"]
+    out_cost = (output_tokens / 1_000_000) * prices["output"]
+    return round(in_cost + out_cost, 6)
+
+
+# ---------------------------------------------------------------------------
+# Normalized output schema (Task 7: + ttft_ms, cost_usd)
 # ---------------------------------------------------------------------------
 
 def _normalized_result(
@@ -34,14 +55,18 @@ def _normalized_result(
     output_tokens: int,
     duration_ms: float,
     error: str | None = None,
+    ttft_ms: float | None = None,
 ) -> dict[str, Any]:
+    cost_usd = _calc_cost(provider, model, input_tokens, output_tokens)
     return {
         "response": response,
         "provider": provider,
         "model": model,
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
+        "ttft_ms": round(ttft_ms, 2) if ttft_ms is not None else None,
         "duration_ms": round(duration_ms, 2),
+        "cost_usd": cost_usd,
         "error": error,
     }
 
@@ -97,6 +122,7 @@ class MultiSDKService:
                 output_tokens=0,
                 duration_ms=0,
                 error=f"Unknown provider: {provider}",
+                ttft_ms=None,
             )
         return runner(user_request, model)
 
@@ -125,6 +151,7 @@ class MultiSDKService:
                         output_tokens=0,
                         duration_ms=0,
                         error=str(e),
+                        ttft_ms=None,
                     )
                 )
         return {"results": results}
@@ -134,16 +161,34 @@ class MultiSDKService:
     ) -> dict[str, Any]:
         model = model or "gpt-4o-mini"
         start = time.perf_counter()
+        ttft_ms: float | None = None
         try:
-            response = self.openai_client.chat.completions.create(
+            stream = self.openai_client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
+                stream=True,
+                stream_options={"include_usage": True},
             )
-            content = response.choices[0].message.content or ""
-            usage = response.usage
-            input_tokens = usage.prompt_tokens if usage else 0
-            output_tokens = usage.completion_tokens if usage else 0
+            content_parts: list[str] = []
+            input_tokens = 0
+            output_tokens = 0
+            for chunk in stream:
+                if ttft_ms is None:
+                    ttft_ms = (time.perf_counter() - start) * 1000
+                if chunk.choices:
+                    delta = chunk.choices[0].delta
+                    if delta and getattr(delta, "content", None):
+                        content_parts.append(delta.content)
+                if hasattr(chunk, "usage") and chunk.usage:
+                    input_tokens = getattr(chunk.usage, "prompt_tokens", 0) or 0
+                    output_tokens = getattr(chunk.usage, "completion_tokens", 0) or 0
+            content = "".join(content_parts)
+            duration_ms = (time.perf_counter() - start) * 1000
+            if input_tokens == 0 and output_tokens == 0:
+                from app.core.tokenizer import TokenCounter
+                input_tokens = TokenCounter.count_openai_tokens(prompt, model)
+                output_tokens = TokenCounter.count_openai_tokens(content, model)
         except Exception as e:
             duration_ms = (time.perf_counter() - start) * 1000
             return _normalized_result(
@@ -154,9 +199,9 @@ class MultiSDKService:
                 output_tokens=0,
                 duration_ms=duration_ms,
                 error=str(e),
+                ttft_ms=None,
             )
-        duration_ms = (time.perf_counter() - start) * 1000
-        logger.info(f"[MultiSDK] OpenAI done: {output_tokens} tokens")
+        logger.info(f"[MultiSDK] OpenAI done: {output_tokens} tokens, TTFT={ttft_ms}ms")
         return _normalized_result(
             response=content,
             provider="openai",
@@ -164,6 +209,7 @@ class MultiSDKService:
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             duration_ms=duration_ms,
+            ttft_ms=ttft_ms,
         )
 
     def _run_anthropic(
@@ -195,6 +241,7 @@ class MultiSDKService:
                 output_tokens=0,
                 duration_ms=duration_ms,
                 error=str(e),
+                ttft_ms=None,
             )
         duration_ms = (time.perf_counter() - start) * 1000
         logger.info(f"[MultiSDK] Anthropic done: {output_tokens} tokens")
@@ -205,6 +252,7 @@ class MultiSDKService:
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             duration_ms=duration_ms,
+            ttft_ms=None,
         )
 
     def _run_gemini(
@@ -222,6 +270,7 @@ class MultiSDKService:
                 output_tokens=0,
                 duration_ms=duration_ms,
                 error="GOOGLE_API_KEY not configured",
+                ttft_ms=None,
             )
         try:
             import google.generativeai as genai
@@ -259,6 +308,7 @@ class MultiSDKService:
                 output_tokens=0,
                 duration_ms=duration_ms,
                 error=str(e),
+                ttft_ms=None,
             )
         duration_ms = (time.perf_counter() - start) * 1000
         logger.info(f"[MultiSDK] Gemini done: {output_tokens} tokens")
@@ -269,6 +319,7 @@ class MultiSDKService:
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             duration_ms=duration_ms,
+            ttft_ms=None,
         )
 
     def _run_vllm(
@@ -286,6 +337,7 @@ class MultiSDKService:
                 output_tokens=0,
                 duration_ms=duration_ms,
                 error="VLLM_BASE_URL not configured",
+                ttft_ms=None,
             )
         try:
             vllm_client = OpenAI(
@@ -312,6 +364,7 @@ class MultiSDKService:
                 output_tokens=0,
                 duration_ms=duration_ms,
                 error=str(e),
+                ttft_ms=None,
             )
         duration_ms = (time.perf_counter() - start) * 1000
         logger.info(f"[MultiSDK] vLLM done: {output_tokens} tokens")
@@ -322,6 +375,7 @@ class MultiSDKService:
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             duration_ms=duration_ms,
+            ttft_ms=None,
         )
 
     def _run_llamacpp(
@@ -339,6 +393,7 @@ class MultiSDKService:
                 output_tokens=0,
                 duration_ms=duration_ms,
                 error="LLAMA_CPP_BASE_URL not configured",
+                ttft_ms=None,
             )
         try:
             client = OpenAI(
@@ -365,6 +420,7 @@ class MultiSDKService:
                 output_tokens=0,
                 duration_ms=duration_ms,
                 error=str(e),
+                ttft_ms=None,
             )
         duration_ms = (time.perf_counter() - start) * 1000
         logger.info(f"[MultiSDK] Llama.cpp done: {output_tokens} tokens")
@@ -375,4 +431,5 @@ class MultiSDKService:
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             duration_ms=duration_ms,
+            ttft_ms=None,
         )
