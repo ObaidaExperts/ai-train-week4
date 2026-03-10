@@ -24,3 +24,18 @@ class AgenticFlowRequest(BaseModel):
     user_request: str
     model: str = "gpt-4o"
 
+
+class MultiSDKRequest(BaseModel):
+    """Request for Multi-SDK model execution (same task across providers)."""
+
+    user_request: str
+    provider: str  # openai | anthropic | gemini | vllm
+    model: str | None = None  # Optional; uses provider default if omitted
+
+
+class MultiSDKRunAllRequest(BaseModel):
+    """Request to run the same task across multiple providers."""
+
+    user_request: str
+    providers: list[str] | None = None  # None = all providers
+

@@ -667,4 +667,131 @@ document.addEventListener('DOMContentLoaded', () => {
     if (agenticSingleBtn) agenticSingleBtn.addEventListener('click', runAgenticSingle);
     if (agenticAgenticBtn) agenticAgenticBtn.addEventListener('click', runAgenticFlow);
     if (agenticBothBtn) agenticBothBtn.addEventListener('click', runAgenticBoth);
+
+    // ═══════════════════════════════════════════
+    // Multi-SDK Model Execution
+    // ═══════════════════════════════════════════
+    const multiSdkTab = document.getElementById('multi-sdk-tab');
+    const multiSdkRequest = document.getElementById('multi-sdk-request');
+    const multiSdkProvider = document.getElementById('multi-sdk-provider');
+    const multiSdkRunBtn = document.getElementById('multi-sdk-run-btn');
+    const multiSdkRunAllBtn = document.getElementById('multi-sdk-run-all-btn');
+    const multiSdkSingleResponse = document.getElementById('multi-sdk-single-response');
+    const multiSdkSingleMeta = document.getElementById('multi-sdk-single-meta');
+    const multiSdkAllResultsSection = document.getElementById('multi-sdk-all-results-section');
+    const multiSdkAllResults = document.getElementById('multi-sdk-all-results');
+
+    if (multiSdkTab) {
+        multiSdkTab.addEventListener('click', (e) => {
+            const pill = e.target.closest('button.multi-sdk-example');
+            if (pill && pill.dataset.request && multiSdkRequest) {
+                e.preventDefault();
+                e.stopPropagation();
+                multiSdkRequest.value = pill.dataset.request;
+                multiSdkRequest.focus();
+            }
+        });
+    }
+
+    function setMultiSdkButtonLoading(btn, loading) {
+        if (!btn) return;
+        const text = btn.querySelector('.btn-text');
+        const spinner = btn.querySelector('.btn-spinner');
+        if (text && spinner) {
+            if (loading) {
+                btn.disabled = true;
+                spinner.classList.remove('hidden');
+            } else {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+            }
+        }
+    }
+
+    function renderMultiSdkSingle(data) {
+        if (multiSdkSingleMeta) multiSdkSingleMeta.textContent = `${data.provider} · ${data.model} · ${data.input_tokens || 0} in / ${data.output_tokens || 0} out · ${data.duration_ms || 0}ms`;
+        if (multiSdkSingleResponse) {
+            if (data.error) {
+                multiSdkSingleResponse.innerHTML = `<p class="agentic-error">Error: ${escapeHtml(data.error)}</p>`;
+            } else {
+                multiSdkSingleResponse.innerHTML = `<div class="response-text">${escapeHtml(data.response || '').replace(/\n/g, '<br>')}</div>`;
+            }
+        }
+    }
+
+    async function runMultiSdkSingle() {
+        if (!multiSdkRequest || !multiSdkProvider) return;
+        const user_request = multiSdkRequest.value.trim();
+        if (!user_request) return alert('Please enter a trip request');
+
+        setMultiSdkButtonLoading(multiSdkRunBtn, true);
+        multiSdkSingleResponse.innerHTML = '<p class="placeholder agentic-loading">Running...</p>';
+        multiSdkSingleMeta.textContent = '';
+        multiSdkAllResultsSection.classList.add('hidden');
+
+        try {
+            const res = await fetch('/multi-sdk/run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_request, provider: multiSdkProvider.value })
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(parseApiError(body));
+            renderMultiSdkSingle(body);
+        } catch (e) {
+            multiSdkSingleResponse.innerHTML = `<p class="agentic-error">Error: ${escapeHtml(e.message)}</p>`;
+        } finally {
+            setMultiSdkButtonLoading(multiSdkRunBtn, false);
+        }
+    }
+
+    async function runMultiSdkAll() {
+        if (!multiSdkRequest) return;
+        const user_request = multiSdkRequest.value.trim();
+        if (!user_request) return alert('Please enter a trip request');
+
+        setMultiSdkButtonLoading(multiSdkRunAllBtn, true);
+        multiSdkSingleResponse.innerHTML = '<p class="placeholder agentic-loading">Running all providers...</p>';
+        multiSdkSingleMeta.textContent = '';
+        multiSdkAllResultsSection.classList.add('hidden');
+
+        try {
+            const res = await fetch('/multi-sdk/run-all', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_request })
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(parseApiError(body));
+
+            const results = body.results || [];
+            multiSdkSingleResponse.innerHTML = '<p class="placeholder">See results below.</p>';
+
+            multiSdkAllResults.innerHTML = results.map((r) => {
+                const errHtml = r.error ? `<p class="agentic-error">${escapeHtml(r.error)}</p>` : '';
+                const respHtml = r.response ? `<div class="response-text">${escapeHtml(r.response).replace(/\n/g, '<br>')}</div>` : '';
+                return `
+                    <div class="multi-sdk-result-row">
+                        <div class="multi-sdk-row-header">
+                            <strong>${escapeHtml(r.provider)}</strong> · ${escapeHtml(r.model || '-')}
+                            <span class="multi-sdk-row-meta">${r.input_tokens || 0} in / ${r.output_tokens || 0} out · ${r.duration_ms || 0}ms</span>
+                        </div>
+                        <div class="multi-sdk-row-body">
+                            ${errHtml}
+                            ${respHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            multiSdkAllResultsSection.classList.remove('hidden');
+        } catch (e) {
+            multiSdkSingleResponse.innerHTML = `<p class="agentic-error">Error: ${escapeHtml(e.message)}</p>`;
+        } finally {
+            setMultiSdkButtonLoading(multiSdkRunAllBtn, false);
+        }
+    }
+
+    if (multiSdkRunBtn) multiSdkRunBtn.addEventListener('click', runMultiSdkSingle);
+    if (multiSdkRunAllBtn) multiSdkRunAllBtn.addEventListener('click', runMultiSdkAll);
 });

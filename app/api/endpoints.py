@@ -3,11 +3,18 @@ import logging
 from typing import Any
 from fastapi import APIRouter, Depends
 from app.core.models import AIModel, ExperimentType
-from app.api.schemas import ChatRequest, ToolCallRequest, AgenticFlowRequest
+from app.api.schemas import (
+    ChatRequest,
+    ToolCallRequest,
+    AgenticFlowRequest,
+    MultiSDKRequest,
+    MultiSDKRunAllRequest,
+)
 from app.services.experiment_service import ExperimentService
 from app.services.tool_service import ToolCallingService, TOOLS
 from app.services.single_prompt_service import SinglePromptService
 from app.services.agentic_service import AgenticService
+from app.services.multi_sdk_service import MultiSDKService
 
 logger = logging.getLogger("api")
 router = APIRouter()
@@ -20,7 +27,8 @@ def get_metadata() -> dict[str, Any]:
     """Return available models and experiment types."""
     return {
         "models": [model.value for model in AIModel],
-        "experiment_types": [exp.value for exp in ExperimentType]
+        "experiment_types": [exp.value for exp in ExperimentType],
+        "multi_sdk_providers": ["openai", "anthropic", "gemini", "vllm", "llamacpp"],
     }
 
 @router.post("/chat")
@@ -149,4 +157,34 @@ def agentic_flow_agentic(request: AgenticFlowRequest) -> dict[str, Any]:
     return service.run(
         user_request=request.user_request,
         model=request.model,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Multi-SDK Model Execution (Task 6)
+# ---------------------------------------------------------------------------
+
+@router.post("/multi-sdk/run")
+def multi_sdk_run(request: MultiSDKRequest) -> dict[str, Any]:
+    """
+    Run trip planning on a single provider (OpenAI, Anthropic, Gemini, or vLLM).
+    Same prompt and normalized output schema across all providers.
+    """
+    service = MultiSDKService()
+    return service.run(
+        user_request=request.user_request,
+        provider=request.provider,
+        model=request.model,
+    )
+
+
+@router.post("/multi-sdk/run-all")
+def multi_sdk_run_all(request: MultiSDKRunAllRequest) -> dict[str, Any]:
+    """
+    Run trip planning across multiple providers. Returns results for each provider.
+    """
+    service = MultiSDKService()
+    return service.run_all(
+        user_request=request.user_request,
+        providers=request.providers,
     )
