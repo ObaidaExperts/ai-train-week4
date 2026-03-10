@@ -47,3 +47,27 @@ Use the **"Stress Test"** button to automatically push a model's context window 
 ## 📊 Results
 Logged experiments can be retrieved via the UI or by visiting `GET /results`.
 
+## 🦙 Llama.cpp (Local Models)
+
+The Multi-SDK tab supports local models via [llama-cpp-python](https://github.com/abetlen/llama-cpp-python)'s OpenAI-compatible server.
+
+1. **Install** (included in `poetry install`): `llama-cpp-python[server]`
+
+2. **Download a GGUF model** (e.g. from [Hugging Face](https://huggingface.co/models?search=gguf)):
+   ```bash
+   huggingface-cli download TheBloke/Llama-2-7B-Chat-GGUF llama-2-7b-chat.Q4_K_M.gguf --local-dir ./models
+   ```
+
+3. **Start the server** (port 8080 to avoid conflict with the app on 8000):
+   ```bash
+   python3 -m llama_cpp.server --model ./models/llama-2-7b-chat.Q4_K_M.gguf --port 8080 --host 0.0.0.0
+   ```
+   Or use the helper script: `./scripts/run_llama_server.sh ./models/your-model.gguf`
+
+4. **Configure** in `.env`:
+   ```
+   LLAMA_CPP_BASE_URL=http://localhost:8080/v1
+   ```
+
+5. **Use** the "Llama.cpp (Local)" provider in the Multi-SDK tab.
+

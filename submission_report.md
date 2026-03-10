@@ -279,4 +279,91 @@ The agentic response additionally includes `plan`, `steps`, and `iterations`.
 - **Agentic:** Plan parsing (valid JSON, fallback), planning phase called, tool calls in trace.
 - **API:** `POST /agentic-flow/single` and `POST /agentic-flow/agentic` return expected structure.
 
-**Total tests: 53 — all passing ✅**
+**Total tests: 66 — all passing ✅**
+
+---
+
+# Task 6: Multi-SDK Model Execution
+
+## Goal
+
+Run the same task (trip planning) across different providers—OpenAI, Anthropic, Gemini, local vLLM, and Llama.cpp—with a shared prompt and normalized output schema.
+
+## Implementation
+
+**Location:** `app/services/multi_sdk_service.py`
+
+**Shared prompt:** `TRIP_PLANNING_PROMPT` — same template for all providers.
+
+**Normalized output schema:**
+```json
+{
+  "response": "...",
+  "provider": "openai" | "anthropic" | "gemini" | "vllm" | "llamacpp",
+  "model": "gpt-4o-mini",
+  "input_tokens": 150,
+  "output_tokens": 400,
+  "duration_ms": 1234.56,
+  "error": null
+}
+```
+
+**Providers:**
+| Provider | SDK | Default Model |
+|----------|-----|---------------|
+| OpenAI | `openai` | gpt-4o-mini |
+| Anthropic | `anthropic` | claude-sonnet-4-6 |
+| Gemini | `google-generativeai` | gemini-2.0-flash |
+| vLLM | OpenAI-compatible client | configurable via `VLLM_MODEL` |
+| Llama.cpp | `llama-cpp-python` server (OpenAI-compatible) | `default` |
+
+**Config:** `GOOGLE_API_KEY`, `VLLM_BASE_URL`, `VLLM_MODEL`, `LLAMA_CPP_BASE_URL` in `app/core/config.py`.
+
+## API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/multi-sdk/run` | POST | Run trip planning on a single provider |
+| `/multi-sdk/run-all` | POST | Run on multiple providers (default: all) |
+
+**Request (`/multi-sdk/run`):**
+```json
+{
+  "user_request": "Plan a 3-day trip to Paris with $500 budget",
+  "provider": "openai",
+  "model": null
+}
+```
+
+**Request (`/multi-sdk/run-all`):**
+```json
+{
+  "user_request": "Plan a 3-day trip to Paris",
+  "providers": null
+}
+```
+`providers: null` runs all five providers.
+
+## UI
+
+New **Multi-SDK** tab in the dashboard:
+- Provider selector (OpenAI, Anthropic, Gemini, vLLM, Llama.cpp)
+- "Run Single Provider" — run on selected provider
+- "Run All Providers" — run on all, show results in a grid
+- Example pills for quick trip requests
+
+## Llama.cpp (Local Models)
+
+Local models via [llama-cpp-python](https://github.com/abetlen/llama-cpp-python)'s OpenAI-compatible server:
+- Add `LLAMA_CPP_BASE_URL=http://localhost:8080/v1` to `.env`
+- Start server: `python3 -m llama_cpp.server --model ./models/llama-2-7b-chat.Q4_K_M.gguf --port 8080 --host 0.0.0.0`
+- Or use `./scripts/run_llama_server.sh ./models/your-model.gguf`
+
+## Test Coverage
+
+12 tests in `tests/test_multi_sdk_service.py`:
+- Prompt template, return structure per provider (OpenAI, Anthropic, Gemini)
+- Unknown provider returns error
+- vLLM and Llama.cpp without config return error
+- `run_all` returns results for each provider
+- API: `/multi-sdk/run`, `/multi-sdk/run-all`, metadata includes `multi_sdk_providers`

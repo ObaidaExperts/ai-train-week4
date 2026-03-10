@@ -208,3 +208,6 @@ __marimo__/
 
 # Local results
 experiment_results.csv
+
+# Downloaded GGUF models (large binaries)
+models/

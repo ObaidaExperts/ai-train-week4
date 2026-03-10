@@ -24,6 +24,7 @@
             <button class="tab-btn active" data-tab="experiment-tab">🧪 Experiment</button>
             <button class="tab-btn" data-tab="toolcall-tab">🔧 Tool Calling</button>
             <button class="tab-btn" data-tab="agentic-flow-tab">🔄 Single vs Agentic</button>
+            <button class="tab-btn" data-tab="multi-sdk-tab">🔀 Multi-SDK</button>
         </nav>
 
         <main>
@@ -322,6 +323,68 @@
                 </section>
 
             </div><!-- /agentic-flow-tab -->
+
+            <!-- ═══════════════════ MULTI-SDK TAB ═══════════════════ -->
+            <div id="multi-sdk-tab" class="tab-panel hidden">
+
+                <section class="card tool-controls-card">
+                    <h2>🔀 Multi-SDK Model Execution</h2>
+                    <p class="tool-intro">Run the same trip planning task across different providers (OpenAI, Anthropic, Gemini, vLLM) with a shared prompt and normalized output.</p>
+
+                    <div class="tool-prompt-row">
+                        <div class="form-group" style="flex:1; margin:0;">
+                            <label for="multi-sdk-request">Trip Request</label>
+                            <textarea id="multi-sdk-request" placeholder="e.g. Plan a 3-day trip to Paris with $500 budget" rows="3"></textarea>
+                        </div>
+                        <div class="form-group" style="margin:0; min-width: 140px;">
+                            <label for="multi-sdk-provider">Provider</label>
+                            <select id="multi-sdk-provider">
+                                <option value="openai">OpenAI</option>
+                                <option value="anthropic">Anthropic</option>
+                                <option value="gemini">Gemini</option>
+                                <option value="vllm">vLLM (Local)</option>
+                                <option value="llamacpp">Llama.cpp (Local)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="agentic-btn-row">
+                        <button type="button" id="multi-sdk-run-btn" class="primary-btn" title="Run on selected provider">
+                            <span class="btn-text">▶ Run Single Provider</span>
+                            <span class="btn-spinner hidden"></span>
+                        </button>
+                        <button type="button" id="multi-sdk-run-all-btn" class="accent-btn" title="Run on all providers">
+                            <span class="btn-text">▶ Run All Providers</span>
+                            <span class="btn-spinner hidden"></span>
+                        </button>
+                    </div>
+
+                    <div class="tool-examples" id="multi-sdk-examples">
+                        <span class="example-label">Try:</span>
+                        <button type="button" class="example-pill multi-sdk-example" data-request="Plan a 3-day trip to Paris with $500 budget">Paris 3 days $500</button>
+                        <button type="button" class="example-pill multi-sdk-example" data-request="2 days in Tokyo, $300">Tokyo 2 days $300</button>
+                        <button type="button" class="example-pill multi-sdk-example" data-request="Weekend in Rome, budget $400">Rome weekend $400</button>
+                    </div>
+                </section>
+
+                <section class="card agentic-result-card" id="multi-sdk-single-result">
+                    <div class="section-header">
+                        <h3>📄 Result</h3>
+                        <span class="agentic-meta" id="multi-sdk-single-meta"></span>
+                    </div>
+                    <div id="multi-sdk-single-response" class="agentic-response">
+                        <p class="placeholder">Run a provider to see result...</p>
+                    </div>
+                </section>
+
+                <section class="card hidden" id="multi-sdk-all-results-section">
+                    <div class="section-header">
+                        <h2>📊 Results (All Providers)</h2>
+                    </div>
+                    <div id="multi-sdk-all-results" class="multi-sdk-results-single"></div>
+                </section>
+
+            </div><!-- /multi-sdk-tab -->
 
         </main>
 
