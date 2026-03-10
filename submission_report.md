@@ -283,6 +283,32 @@ The agentic response additionally includes `plan`, `steps`, and `iterations`.
 
 ---
 
+# Task 7: Measure Quality, Cost, Latency
+
+## Goal
+
+Make trade-offs visible across providers.
+
+## Implementation
+
+**Location:** `app/services/multi_sdk_service.py`, `static/` (Multi-SDK tab)
+
+**Metrics captured:**
+
+| Metric | Description |
+|--------|-------------|
+| **TTFT** | Time To First Token (ms) — OpenAI via streaming; others `null` |
+| **Total latency** | End-to-end `duration_ms` |
+| **Input/Output tokens** | From API response |
+| **Cost (USD)** | Calculated from tokens × model pricing; local = 0 |
+| **Quality** | Manual 1–5 rating by user (UI only) |
+
+**Pricing:** `MODEL_PRICING` dict in `multi_sdk_service.py` for gpt-4o-mini, claude-sonnet-4-6, gemini-2.0-flash, etc.
+
+**Comparison table:** After "Run All Providers", a Metrics Comparison table shows Provider | Model | TTFT | Total | In | Out | Cost | Quality (★ selector).
+
+---
+
 # Task 6: Multi-SDK Model Execution
 
 ## Goal
@@ -293,9 +319,9 @@ Run the same task (trip planning) across different providers—OpenAI, Anthropic
 
 **Location:** `app/services/multi_sdk_service.py`
 
-**Shared prompt:** `TRIP_PLANNING_PROMPT` — same template for all providers.
+**Prompt:** User request passed as-is to each provider.
 
-**Normalized output schema:**
+**Normalized output schema (Task 7: + ttft_ms, cost_usd):**
 ```json
 {
   "response": "...",
@@ -303,7 +329,9 @@ Run the same task (trip planning) across different providers—OpenAI, Anthropic
   "model": "gpt-4o-mini",
   "input_tokens": 150,
   "output_tokens": 400,
+  "ttft_ms": 120.5,
   "duration_ms": 1234.56,
+  "cost_usd": 0.0002,
   "error": null
 }
 ```

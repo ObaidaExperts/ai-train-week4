@@ -11,17 +11,23 @@ client = TestClient(app)
 
 # ── Structure tests ────────────────────────────────────────────────────────
 class TestMultiSDKService:
+    def _make_openai_stream(self, content: str, input_tokens: int = 100, output_tokens: int = 200):
+        """Build mock streaming response chunks."""
+        chunk1 = MagicMock()
+        chunk1.choices = [MagicMock()]
+        chunk1.choices[0].delta = MagicMock(content=content)
+        chunk1.usage = None
+        chunk2 = MagicMock()
+        chunk2.choices = []
+        chunk2.usage = MagicMock(prompt_tokens=input_tokens, completion_tokens=output_tokens)
+        return iter([chunk1, chunk2])
+
     @patch("app.services.multi_sdk_service.OpenAI")
     def test_run_passes_user_request_to_model_as_is(self, mock_openai_class):
         mock_client = MagicMock()
         mock_openai_class.return_value = mock_client
 
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Plan"
-        mock_response.usage = MagicMock(prompt_tokens=10, completion_tokens=5)
-
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_client.chat.completions.create.return_value = self._make_openai_stream("Plan", 10, 5)
 
         service = MultiSDKService(openai_client=mock_client)
         service.run(user_request="Plan a 3-day trip to Paris with $500", provider="openai")
@@ -35,14 +41,9 @@ class TestMultiSDKService:
         mock_client = MagicMock()
         mock_openai_class.return_value = mock_client
 
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Day 1: Visit Louvre..."
-        mock_response.usage = MagicMock()
-        mock_response.usage.prompt_tokens = 100
-        mock_response.usage.completion_tokens = 200
-
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_client.chat.completions.create.return_value = self._make_openai_stream(
+            "Day 1: Visit Louvre...", 100, 200
+        )
 
         service = MultiSDKService(openai_client=mock_client)
         result = service.run(user_request="Trip to Paris", provider="openai")
@@ -53,6 +54,8 @@ class TestMultiSDKService:
         assert result["input_tokens"] == 100
         assert result["output_tokens"] == 200
         assert "duration_ms" in result
+        assert result["ttft_ms"] is not None
+        assert result["cost_usd"] is not None
         assert result["error"] is None
 
     @patch("app.services.multi_sdk_service.Anthropic")
@@ -163,12 +166,17 @@ class TestMultiSDKAPI:
         mock_client = MagicMock()
         mock_openai_class.return_value = mock_client
 
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "API plan"
-        mock_response.usage = MagicMock(prompt_tokens=20, completion_tokens=30)
+        def make_stream(content, in_tok, out_tok):
+            c1 = MagicMock()
+            c1.choices = [MagicMock()]
+            c1.choices[0].delta = MagicMock(content=content)
+            c1.usage = None
+            c2 = MagicMock()
+            c2.choices = []
+            c2.usage = MagicMock(prompt_tokens=in_tok, completion_tokens=out_tok)
+            return iter([c1, c2])
 
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_client.chat.completions.create.return_value = make_stream("API plan", 20, 30)
 
         res = client.post(
             "/multi-sdk/run",
@@ -182,6 +190,8 @@ class TestMultiSDKAPI:
         assert "input_tokens" in data
         assert "output_tokens" in data
         assert "duration_ms" in data
+        assert "cost_usd" in data
+        assert "ttft_ms" in data
 
     def test_multi_sdk_run_requires_provider(self):
         res = client.post(
@@ -209,11 +219,17 @@ class TestMultiSDKAPI:
         mock_client = MagicMock()
         mock_openai_class.return_value = mock_client
 
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Plan"
-        mock_response.usage = MagicMock(prompt_tokens=10, completion_tokens=5)
-        mock_client.chat.completions.create.return_value = mock_response
+        def make_stream(content, in_tok, out_tok):
+            c1 = MagicMock()
+            c1.choices = [MagicMock()]
+            c1.choices[0].delta = MagicMock(content=content)
+            c1.usage = None
+            c2 = MagicMock()
+            c2.choices = []
+            c2.usage = MagicMock(prompt_tokens=in_tok, completion_tokens=out_tok)
+            return iter([c1, c2])
+
+        mock_client.chat.completions.create.return_value = make_stream("Plan", 10, 5)
 
         res = client.post(
             "/multi-sdk/run-all",
@@ -225,3 +241,4 @@ class TestMultiSDKAPI:
         assert "results" in data
         assert len(data["results"]) == 1
         assert data["results"][0]["provider"] == "openai"
+        assert "cost_usd" in data["results"][0]

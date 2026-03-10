@@ -1,5 +1,6 @@
 {
     "name": "Tokenization Experiment Enhanced DevContainer",
+    "forwardPorts": [8000, 8080],
     "build": {
         "dockerfile": "Dockerfile",
         "context": ".."
